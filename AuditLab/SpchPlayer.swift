@@ -30,6 +30,9 @@ final class SpchPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
   private var set: AppSet
   private var isPaused = false // track if we paused mid-utterance
   private var isJumping = false // prevent concurrent jumps
+  
+  // Callback when paper finishes
+  var onPaperComplete: (() -> Void)?
 
   // token stream: headings + sentences
   private enum Tok {
@@ -174,6 +177,12 @@ final class SpchPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
         }
       }
     }
+    
+    // Add conclusion announcement at the end
+    out.append(.gap(0.5))
+    let conclusionTxt = conclusionSpeak(p.meta)
+    out.append(.head(conclusionTxt))
+    out.append(.gap(0.5))
 
     seq = out
   }
@@ -211,12 +220,22 @@ final class SpchPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
     }
     return parts.joined(separator: ". ")
   }
+  
+  private func conclusionSpeak(_ m: Meta) -> String {
+    var parts: [String] = ["We have now concluded", m.title]
+    if m.auths.count > 0 && m.auths.count <= 2 {
+      parts.append("by \(m.auths.joined(separator: " and "))")
+    }
+    return parts.joined(separator: " ")
+  }
 
   // MARK: - Stepping
 
   private func step() {
     guard st == .play, tokIx < seq.count else {
       st = .idle
+      // Paper finished - trigger callback
+      onPaperComplete?()
       return
     }
 

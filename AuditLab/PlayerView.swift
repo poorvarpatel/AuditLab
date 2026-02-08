@@ -6,10 +6,13 @@
 //
 
 internal import SwiftUI
+import AVFoundation
 
 struct PlayerView: View {
     @ObservedObject var sp: SpchPlayer
     @EnvironmentObject var set: AppSet
+    @EnvironmentObject var q: QueueStore
+    @EnvironmentObject var lib: LibStore
     @ObservedObject var bus = NotifBus.shared
     
     @State private var showAsk = false
@@ -49,8 +52,11 @@ struct PlayerView: View {
                 .padding(.bottom, 12)
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
-        .onChange(of: bus.wantSkip) {
-            guard let v = bus.wantSkip else { return }
+        .onAppear {
+            setupCompletionHandler()
+        }
+        .onChange(of: bus.wantSkip) { oldValue, newValue in
+            guard let v = newValue else { return }
             askIdx = v
             showAsk = true
             bus.wantSkip = nil
@@ -64,6 +70,65 @@ struct PlayerView: View {
             }
         } message: {
             Text("This will move playback to a new spot in the paper.")
+        }
+    }
+    
+    private func setupCompletionHandler() {
+        sp.onPaperComplete = { [weak sp] in
+            Task { @MainActor in
+                guard let sp = sp else { return }
+                handlePaperCompletion(sp)
+            }
+        }
+    }
+    
+    private func handlePaperCompletion(_ player: SpchPlayer) {
+        // Mark current paper as read
+        if let currentPaperId = player.pack?.id {
+            if let idx = lib.recs.firstIndex(where: { $0.id == currentPaperId }) {
+                lib.recs[idx].isRead = true
+            }
+        }
+        
+        // Advance queue and load next paper
+        loadNextPaper(player)
+    }
+    
+    private func loadNextPaper(_ player: SpchPlayer) {
+        // Advance queue
+        q.next()
+        
+        // Get next item
+        guard let nextItem = q.cur() else {
+            // Queue finished - stop playing
+            player.stop()
+            return
+        }
+        
+        // Check if this is a folder
+        if nextItem.paperId.hasPrefix("folder:") {
+            let folderId = String(nextItem.paperId.dropFirst(7))
+            let folderPapers = q.getFolderPapers(folderId)
+            
+            if !folderPapers.isEmpty {
+                // Start folder playback
+                q.startFolderPlayback(folderId, papers: folderPapers)
+                
+                // Load first paper from folder
+                if let firstPaper = folderPapers.first {
+                    let nextPack = DemoData.pack(id: firstPaper.paperId)
+                    player.load(nextPack, q: firstPaper)
+                    player.play()
+                }
+            } else {
+                // Empty folder, skip to next
+                loadNextPaper(player)
+            }
+        } else {
+            // Regular paper - load and play
+            let nextPack = DemoData.pack(id: nextItem.paperId)
+            player.load(nextPack, q: nextItem)
+            player.play()
         }
     }
     

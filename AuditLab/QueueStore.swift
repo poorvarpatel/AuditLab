@@ -84,6 +84,9 @@ final class QueueStore: ObservableObject {
         endFolderPlayback()
         if idx < items.count - 1 {
           idx += 1
+        } else {
+          // Reached end of queue
+          idx = items.count // Set to past the end to signal completion
         }
       }
     } else {
@@ -91,8 +94,9 @@ final class QueueStore: ObservableObject {
       guard !items.isEmpty else { return }
       if idx < items.count - 1 {
         idx += 1
-        // Check if next item is a folder
-        checkAndStartFolder()
+      } else {
+        // Reached end of queue
+        idx = items.count // Set to past the end to signal completion
       }
     }
   }
@@ -124,13 +128,5 @@ final class QueueStore: ObservableObject {
     activeFolderId = nil
     folderPapers.removeAll()
     folderIdx = 0
-  }
-  
-  private func checkAndStartFolder() {
-    guard let current = cur() else { return }
-    if current.paperId.hasPrefix("folder:") {
-      let folderId = String(current.paperId.dropFirst(7))
-      // This will be triggered by the player to load folder papers
-    }
   }
 }
