@@ -108,9 +108,25 @@ struct QueueView: View {
   }
   
   private func playQueueItem(_ item: QItem) {
-    let pack = loadPack(paperId: item.paperId)
-    sp.load(pack, q: item)
-    showPlayer = true
+    // Check if this is a folder
+    if item.paperId.hasPrefix("folder:") {
+      let folderId = String(item.paperId.dropFirst(7))
+      let folderPapers = q.getFolderPapers(folderId)
+      
+      if !folderPapers.isEmpty {
+        q.startFolderPlayback(folderId, papers: folderPapers)
+        if let firstPaper = folderPapers.first {
+          let pack = loadPack(paperId: firstPaper.paperId)
+          sp.load(pack, q: firstPaper)
+          showPlayer = true
+        }
+      }
+    } else {
+      // Regular paper
+      let pack = loadPack(paperId: item.paperId)
+      sp.load(pack, q: item)
+      showPlayer = true
+    }
   }
   
   private func loadPack(paperId: String) -> ReadPack {
@@ -126,12 +142,143 @@ struct QueueItemRow: View {
   let onDelete: () -> Void
   
   @EnvironmentObject var lib: LibStore
+  @EnvironmentObject var folds: FoldStore
+  @EnvironmentObject var q: QueueStore
+  
+  @State private var isExpanded = false
+  
+  private var isFolder: Bool {
+    item.paperId.hasPrefix("folder:")
+  }
+  
+  private var folderId: String? {
+    guard isFolder else { return nil }
+    return String(item.paperId.dropFirst(7))
+  }
+  
+  private var folder: FoldRec? {
+    guard let id = folderId else { return nil }
+    return folds.folds.first(where: { $0.id == id })
+  }
   
   private var paper: PaperRec? {
-    lib.recs.first(where: { $0.id == item.paperId })
+    guard !isFolder else { return nil }
+    return lib.recs.first(where: { $0.id == item.paperId })
   }
   
   var body: some View {
+    VStack(alignment: .leading, spacing: 0) {
+      if isFolder {
+        folderRow()
+        if isExpanded {
+          folderPapersView()
+        }
+      } else {
+        paperRow()
+      }
+    }
+  }
+  
+  private func folderRow() -> some View {
+    let paperCount = folderId.map { q.getFolderPapers($0).count } ?? 0
+    
+    return HStack(spacing: 12) {
+      // Current indicator
+      if isCurrent {
+        Circle()
+          .fill(Color.blue)
+          .frame(width: 8, height: 8)
+      } else {
+        Circle()
+          .fill(Color.clear)
+          .frame(width: 8, height: 8)
+      }
+      
+      // Folder icon
+      Image(systemName: isExpanded ? "folder.fill.badge.minus" : "folder.fill.badge.plus")
+        .foregroundStyle(.blue)
+      
+      // Folder info
+      VStack(alignment: .leading, spacing: 4) {
+        Text(folder?.name ?? "Unknown Folder")
+          .font(.system(size: 16, weight: isCurrent ? .semibold : .regular))
+          .lineLimit(1)
+        
+        Text("\(paperCount) papers")
+          .font(.system(size: 14))
+          .foregroundStyle(.secondary)
+      }
+      
+      Spacer()
+      
+      if isCurrent {
+        Text("Now")
+          .font(.caption.weight(.semibold))
+          .foregroundStyle(.blue)
+          .padding(.horizontal, 8)
+          .padding(.vertical, 4)
+          .background(Color.blue.opacity(0.1))
+          .clipShape(Capsule())
+      }
+      
+      // Expand/collapse button
+      Image(systemName: "chevron.right")
+        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+        .foregroundStyle(.secondary)
+    }
+    .padding(.vertical, 4)
+    .contentShape(Rectangle())
+    .onTapGesture {
+      withAnimation {
+        isExpanded.toggle()
+      }
+    }
+  }
+  
+  private func folderPapersView() -> some View {
+    let papers = folderId.flatMap { q.getFolderPapers($0) } ?? []
+    
+    return VStack(alignment: .leading, spacing: 8) {
+      ForEach(Array(papers.enumerated()), id: \.element.id) { index, folderItem in
+        HStack(spacing: 12) {
+          // Indentation
+          Color.clear.frame(width: 28)
+          
+          // Current indicator for folder papers
+          if q.activeFolderId == folderId && index == q.folderIdx {
+            Circle()
+              .fill(Color.green)
+              .frame(width: 6, height: 6)
+          } else {
+            Circle()
+              .fill(Color.clear)
+              .frame(width: 6, height: 6)
+          }
+          
+          let folderPaper = lib.recs.first(where: { $0.id == folderItem.paperId })
+          
+          VStack(alignment: .leading, spacing: 2) {
+            Text(folderPaper?.title ?? folderItem.paperId)
+              .font(.system(size: 14))
+              .lineLimit(1)
+            
+            if let p = folderPaper, !p.auths.isEmpty {
+              Text(p.auths.joined(separator: ", "))
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            }
+          }
+          
+          Spacer()
+        }
+        .padding(.vertical, 4)
+      }
+    }
+    .padding(.leading, 8)
+  }
+  
+  private func paperRow() -> some View {
     HStack(spacing: 12) {
       // Current indicator
       if isCurrent {

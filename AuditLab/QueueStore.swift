@@ -19,14 +19,24 @@ final class QueueStore: ObservableObject {
   @Published var folderPapers: [QItem] = [] // papers currently being played from folder
   @Published var folderIdx: Int = 0
   
+  // Map folder IDs to their papers
+  private var folderPapersMap: [String: [QItem]] = [:]
+  
   func add(_ it: QItem) {
     if !items.contains(it) { items.append(it) }
   }
   
   func addFolder(_ folderId: String, papers: [QItem]) {
+    // Store papers for this folder
+    folderPapersMap[folderId] = papers
+    
     // Add a special marker item for folder
     let marker = QItem(paperId: "folder:\(folderId)", secOn: [], incApp: false, incSum: false)
     items.append(marker)
+  }
+  
+  func getFolderPapers(_ folderId: String) -> [QItem] {
+    return folderPapersMap[folderId] ?? []
   }
   
   func addMany(_ arr: [QItem]) {
