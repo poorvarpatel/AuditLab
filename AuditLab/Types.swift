@@ -43,7 +43,46 @@ struct Fig: Codable, Identifiable {
   var cap: String?
 }
 
-// Queue item: what to read for a paper
+// Queue item: can be a single paper or a folder
+enum QueueItemType: Codable, Equatable {
+  case paper(PaperQueueConfig)
+  case folder(FolderQueueConfig)
+}
+
+// Configuration for a single paper in queue
+struct PaperQueueConfig: Codable, Identifiable, Equatable {
+  var id: String { paperId }
+  var paperId: String
+  var secOn: Set<String>
+  var incApp: Bool
+  var incSum: Bool
+}
+
+// Configuration for a folder in queue
+struct FolderQueueConfig: Codable, Identifiable, Equatable {
+  var id: String { folderId }
+  var folderId: String
+  var selectedPaperIds: [String] // which papers from folder to play
+  var isExpanded: Bool = false // UI state for showing papers
+}
+
+// New queue item that can be paper or folder
+struct QueueItem: Identifiable, Equatable {
+  let id: String
+  let type: QueueItemType
+  
+  init(paper: PaperQueueConfig) {
+    self.id = "paper_\(paper.paperId)"
+    self.type = .paper(paper)
+  }
+  
+  init(folder: FolderQueueConfig) {
+    self.id = "folder_\(folder.folderId)"
+    self.type = .folder(folder)
+  }
+}
+
+// Legacy QItem for compatibility - will phase out
 struct QItem: Codable, Identifiable, Equatable {
   var id: String { paperId }
   var paperId: String
@@ -59,5 +98,5 @@ struct PaperRec: Codable, Identifiable, Equatable {
   var auths: [String]
   var date: String?
   var addedAt: Date
+  var isRead: Bool = false // track read status
 }
-

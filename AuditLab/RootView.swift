@@ -5,7 +5,7 @@
 //  Created by Poorva Patel on 2/7/26.
 //
 
-import SwiftUI
+internal import SwiftUI
 
 struct RootView: View {
   var body: some View {

@@ -5,7 +5,7 @@
 //  Created by Poorva Patel on 2/7/26.
 //
 
-import SwiftUI
+internal import SwiftUI
 
 struct LibraryView: View {
   @EnvironmentObject var lib: LibStore
@@ -45,6 +45,7 @@ struct LibraryView: View {
                 rec: r,
                 status: .ready,
                 onPlay: { play(r) },
+                onAddToQueue: { addToQueue(r) },
                 onDelete: { delete(r) }
               )
               .frame(minHeight: 220)
@@ -93,6 +94,12 @@ struct LibraryView: View {
 
   private func delete(_ r: PaperRec) {
     lib.recs.removeAll { $0.id == r.id }
+  }
+  
+  private func addToQueue(_ r: PaperRec) {
+    let p = DemoData.pack()
+    let it = DemoData.qitem(for: p)
+    q.add(it)
   }
 
   private func addDemo() {

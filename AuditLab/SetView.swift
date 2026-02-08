@@ -5,7 +5,7 @@
 //  Created by Poorva Patel on 2/7/26.
 //
 
-import SwiftUI
+internal import SwiftUI
 
 struct SetView: View {
   @EnvironmentObject var set: AppSet

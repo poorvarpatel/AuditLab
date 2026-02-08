@@ -5,7 +5,7 @@
 //  Created by Poorva Patel on 2/7/26.
 //
 
-import SwiftUI
+internal import SwiftUI
 
 struct HistView: View {
   var body: some View {

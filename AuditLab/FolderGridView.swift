@@ -5,7 +5,7 @@
 //  Created by Poorva Patel on 2/8/26.
 //
 
-import SwiftUI
+internal import SwiftUI
 
 struct FolderGridView: View {
   @EnvironmentObject var folds: FoldStore

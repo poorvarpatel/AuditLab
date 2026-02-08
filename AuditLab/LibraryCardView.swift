@@ -5,12 +5,13 @@
 //  Created by Poorva Patel on 2/7/26.
 //
 
-import SwiftUI
+internal import SwiftUI
 
 struct LibraryCardView: View {
   let rec: PaperRec
   let status: PaperStatus
   let onPlay: () -> Void
+  let onAddToQueue: () -> Void
   let onDelete: () -> Void
 
   var body: some View {
@@ -23,13 +24,24 @@ struct LibraryCardView: View {
 
           Spacer()
 
-          Button(action: onDelete) {
-            Image(systemName: "trash")
+          Menu {
+            Button {
+              onAddToQueue()
+            } label: {
+              Label("Add to Queue", systemImage: "text.badge.plus")
+            }
+            
+            Button(role: .destructive) {
+              onDelete()
+            } label: {
+              Label("Delete", systemImage: "trash")
+            }
+          } label: {
+            Image(systemName: "ellipsis.circle")
               .font(.system(size: 16, weight: .regular))
               .foregroundStyle(.secondary)
               .padding(6)
           }
-          .buttonStyle(.plain)
         }
 
         Text(rec.title)

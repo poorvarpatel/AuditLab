@@ -5,7 +5,7 @@
 //  Created by Poorva Patel on 2/8/26.
 //
 
-import SwiftUI
+internal import SwiftUI
 
 struct FolderDetailView: View {
   @Environment(\.dismiss) private var dismiss
@@ -21,6 +21,7 @@ struct FolderDetailView: View {
   @State private var sp: SpchPlayer? = nil
   @State private var showRenameAlert = false
   @State private var renameText = ""
+  @State private var showFolderQueueConfig = false
   
   private var folder: FoldRec? {
     folds.folds.first(where: { $0.id == folderId })
@@ -68,10 +69,20 @@ struct FolderDetailView: View {
         }
         
         ToolbarItem(placement: .topBarTrailing) {
-          Button {
-            showAddPapers = true
+          Menu {
+            Button {
+              showAddPapers = true
+            } label: {
+              Label("Add Papers", systemImage: "doc.badge.plus")
+            }
+            
+            Button {
+              addFolderToQueue()
+            } label: {
+              Label("Add to Queue", systemImage: "text.badge.plus")
+            }
           } label: {
-            Image(systemName: "plus")
+            Image(systemName: "ellipsis.circle")
           }
         }
         
@@ -102,7 +113,22 @@ struct FolderDetailView: View {
           PlayerView(sp: sp).environmentObject(set)
         }
       }
+      .sheet(isPresented: $showFolderQueueConfig) {
+        if let fold = folder {
+          FolderQueueConfigView(
+            config: FolderQueueConfig(folderId: fold.id, selectedPaperIds: []),
+            folderId: fold.id
+          )
+          .environmentObject(lib)
+          .environmentObject(folds)
+          .environmentObject(q)
+        }
+      }
     }
+  }
+  
+  private func addFolderToQueue() {
+    showFolderQueueConfig = true
   }
   
   private func papersInFolder(_ folder: FoldRec) -> [PaperRec] {
@@ -182,6 +208,12 @@ struct PaperRowView: View {
           onPlay()
         } label: {
           Label("Play", systemImage: "play.fill")
+        }
+        
+        Button {
+          // Add to queue - will pass this up
+        } label: {
+          Label("Add to Queue", systemImage: "text.badge.plus")
         }
         
         Button {
