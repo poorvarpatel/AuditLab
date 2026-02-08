@@ -15,6 +15,8 @@ struct LibraryView: View {
 
   @State private var sp: SpchPlayer? = nil
   @State private var showPlayer = false
+  @State private var selectedFolderId: String? = nil
+  @State private var showFolderDetail = false
 
   var body: some View {
     ZStack {
@@ -27,12 +29,16 @@ struct LibraryView: View {
             onAddFold: { folds.addNew() }
           )
 
-          // Folders row (placeholder for now)
-//          if !folds.folds.isEmpty {
-//            FolderRowView()
-//              .padding(.horizontal, 18)
-//          }
+          // Folders section
+          if !folds.folds.isEmpty {
+            FolderGridView(onTapFolder: { fold in
+              selectedFolderId = fold.id
+              showFolderDetail = true
+            })
+            .padding(.horizontal, 18)
+          }
 
+          // Papers section
           LazyVGrid(columns: cols(), spacing: 18) {
             ForEach(lib.recs) { r in
               LibraryCardView(
@@ -54,6 +60,15 @@ struct LibraryView: View {
         PlayerView(sp: sp).environmentObject(set)
       } else {
         Text("No player loaded").padding()
+      }
+    }
+    .sheet(isPresented: $showFolderDetail) {
+      if let folderId = selectedFolderId {
+        FolderDetailView(folderId: folderId)
+          .environmentObject(lib)
+          .environmentObject(folds)
+          .environmentObject(q)
+          .environmentObject(set)
       }
     }
   }
@@ -86,4 +101,3 @@ struct LibraryView: View {
     lib.add(r)
   }
 }
-

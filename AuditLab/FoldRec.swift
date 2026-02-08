@@ -8,7 +8,7 @@
 import Foundation
 
 struct FoldRec: Identifiable, Hashable {
-  let id: UUID = UUID()
+  let id: String = UUID().uuidString
   var name: String
-  var pids: [UUID] = []
+  var pids: [String] = [] // paper IDs
 }
