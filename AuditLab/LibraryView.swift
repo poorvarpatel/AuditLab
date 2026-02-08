@@ -82,7 +82,7 @@ struct LibraryView: View {
     if sp == nil { sp = SpchPlayer(set: set) }
     guard let sp else { return }
 
-    let p = DemoData.pack()
+    let p = DemoData.pack(id: r.id)
     let it = DemoData.qitem(for: p)
 
     q.add(it)
@@ -97,14 +97,14 @@ struct LibraryView: View {
   }
   
   private func addToQueue(_ r: PaperRec) {
-    let p = DemoData.pack()
+    let p = DemoData.pack(id: r.id)
     let it = DemoData.qitem(for: p)
     q.add(it)
   }
 
   private func addDemo() {
-    let p = DemoData.pack()
-    let r = DemoData.rec(for: p)
-    lib.add(r)
+    for (pack, rec) in DemoData.allDemoPapers() {
+      lib.add(rec)
+    }
   }
 }

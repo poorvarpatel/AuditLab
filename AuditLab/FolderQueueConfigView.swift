@@ -137,11 +137,8 @@ struct FolderQueueConfigView: View {
     
     // Create QItems for selected papers
     let queueItems = orderedIds.compactMap { paperId -> QItem? in
-      // For now use demo pack - later we'll load actual paper
-      let pack = DemoData.pack()
-      var qitem = DemoData.qitem(for: pack)
-      qitem.paperId = paperId // Use actual paper ID
-      return qitem
+      let pack = DemoData.pack(id: paperId)
+      return DemoData.qitem(for: pack)
     }
     
     // Add folder marker and papers to queue (they'll be stored in the map)

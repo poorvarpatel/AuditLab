@@ -130,8 +130,8 @@ struct QueueView: View {
   }
   
   private func loadPack(paperId: String) -> ReadPack {
-    // v0: only demo exists
-    return DemoData.pack()
+    // Load by ID - for demo papers this works, later will load from storage
+    return DemoData.pack(id: paperId)
   }
 }
 

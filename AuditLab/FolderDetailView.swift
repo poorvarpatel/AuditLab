@@ -157,7 +157,7 @@ struct FolderDetailView: View {
     if sp == nil { sp = SpchPlayer(set: set) }
     guard let sp else { return }
     
-    let p = DemoData.pack()
+    let p = DemoData.pack(id: rec.id)
     let it = DemoData.qitem(for: p)
     
     q.add(it)
