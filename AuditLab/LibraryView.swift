@@ -10,57 +10,73 @@ import SwiftUI
 struct LibraryView: View {
   @EnvironmentObject var lib: LibStore
   @EnvironmentObject var q: QueueStore
+  @EnvironmentObject var set: AppSet
 
-  @State private var sel: PaperRec? = nil
-  @State private var showDet = false
+  @StateObject private var sp = SpchPlayer(set: AppSet()) // v0; we’ll inject properly soon
+  @State private var showPlayer = false
+  @State private var curRec: PaperRec? = nil
 
   var body: some View {
-    NavigationStack {
-      List {
-        Section("Papers") {
+    ScrollView {
+      VStack(alignment: .leading, spacing: 18) {
+        LibraryHeaderView {
+          addDemo()
+        }
+
+        LazyVGrid(columns: cols(), spacing: 18) {
           ForEach(lib.recs) { r in
-            Button {
-              sel = r
-              showDet = true
-            } label: {
-              VStack(alignment: .leading, spacing: 4) {
-                Text(r.title)
-                  .lineLimit(1)
-                  .truncationMode(.tail)
-                Text(sub(r))
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
-                  .lineLimit(1)
+            LibraryCardView(
+              rec: r,
+              status: status(for: r),
+              onPlay: {
+                play(r)
+              },
+              onDelete: {
+                delete(r)
               }
-            }
+            )
+            .frame(minHeight: 220)
           }
         }
+        .padding(.horizontal, 18)
+        .padding(.bottom, 24)
       }
-      .navigationTitle("Library")
-      .toolbar {
-        Button("Add Demo") {
-          let p = DemoData.pack()
-          let r = DemoData.rec(for: p)
-          lib.add(r)
-
-          // For now, auto-add to queue so the Queue tab works immediately
-          let it = DemoData.qitem(for: p)
-          q.add(it)
-        }
-      }
-      .sheet(isPresented: $showDet) {
-        if let r = sel {
-          PaperDetailView(rec: r)
-        }
-      }
+    }
+    .sheet(isPresented: $showPlayer) {
+      PlayerView(sp: sp)
+        .environmentObject(set)
     }
   }
 
-  private func sub(_ r: PaperRec) -> String {
-    var out: [String] = []
-    if r.auths.count > 0 && r.auths.count <= 2 { out.append(r.auths.joined(separator: ", ")) }
-    if let d = r.date { out.append(d) }
-    return out.joined(separator: " • ")
+  // Responsive columns
+  private func cols() -> [GridItem] {
+    // 1 column on compact width, 2 on regular
+    [GridItem(.adaptive(minimum: 320), spacing: 18)]
+  }
+
+  private func status(for r: PaperRec) -> PaperStatus {
+    // v0: demo is ready, others error until we wire PDF parsing
+    return .ready
+  }
+
+  private func play(_ r: PaperRec) {
+    // v0: demo only
+    let p = DemoData.pack()
+    let it = DemoData.qitem(for: p)
+    q.add(it)
+    q.idx = max(0, q.items.count - 1)
+
+    sp.load(p, q: it)
+    showPlayer = true
+  }
+
+  private func delete(_ r: PaperRec) {
+    lib.recs.removeAll { $0.id == r.id }
+  }
+
+  private func addDemo() {
+    let p = DemoData.pack()
+    let r = DemoData.rec(for: p)
+    lib.add(r)
   }
 }
-
