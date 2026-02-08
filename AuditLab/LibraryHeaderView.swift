@@ -8,7 +8,8 @@
 import SwiftUI
 
 struct LibraryHeaderView: View {
-  let onAdd: () -> Void
+  var onAddPaper: () -> Void
+  var onAddFold: () -> Void
 
   var body: some View {
     HStack(alignment: .top) {
@@ -16,28 +17,34 @@ struct LibraryHeaderView: View {
         Text("My Library")
           .font(.system(size: 44, weight: .bold, design: .serif))
 
-        Text("Manage and listen to\nyour academic papers.")
-          .font(.system(size: 18, weight: .medium))
+        Text("Manage and listen to\nyour academic\npapers.")
           .foregroundStyle(.secondary)
       }
 
       Spacer()
 
-      Button(action: onAdd) {
-        HStack(spacing: 10) {
-          Image(systemName: "plus")
-          Text("Add Paper")
-            .font(.system(size: 18, weight: .semibold))
+      VStack(alignment: .trailing, spacing: 10) {
+        Button(action: onAddPaper) {
+          Label("Add Paper", systemImage: "plus")
+            .font(.headline)
+            .padding(.vertical, 14)
+            .padding(.horizontal, 18)
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 14)
+        .buttonStyle(.borderedProminent)
+        .clipShape(Capsule())
+
+        Button(action: onAddFold) {
+          Image(systemName: "folder.badge.plus")
+            .font(.system(size: 14, weight: .semibold))
+            .frame(width: 34, height: 34)
+        }
+        .buttonStyle(.bordered)
+        .clipShape(Circle())
+        .accessibilityLabel("Add Folder")
       }
-      .buttonStyle(.borderedProminent)
-      .tint(.blue)
-      .clipShape(Capsule())
-      .shadow(color: Color.blue.opacity(0.18), radius: 14, x: 0, y: 10)
     }
     .padding(.horizontal, 18)
     .padding(.top, 10)
   }
 }
+

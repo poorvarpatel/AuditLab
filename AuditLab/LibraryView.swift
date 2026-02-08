@@ -11,6 +11,7 @@ struct LibraryView: View {
   @EnvironmentObject var lib: LibStore
   @EnvironmentObject var q: QueueStore
   @EnvironmentObject var set: AppSet
+  @EnvironmentObject var folds: FoldStore
 
   @State private var sp: SpchPlayer? = nil
   @State private var showPlayer = false
@@ -21,15 +22,22 @@ struct LibraryView: View {
 
       ScrollView {
         VStack(alignment: .leading, spacing: 18) {
-          LibraryHeaderView {
-            addDemo()
-          }
+          LibraryHeaderView(
+            onAddPaper: { addDemo() },
+            onAddFold: { folds.addNew() }
+          )
+
+          // Folders row (placeholder for now)
+//          if !folds.folds.isEmpty {
+//            FolderRowView()
+//              .padding(.horizontal, 18)
+//          }
 
           LazyVGrid(columns: cols(), spacing: 18) {
             ForEach(lib.recs) { r in
               LibraryCardView(
                 rec: r,
-                status: status(for: r),
+                status: .ready,
                 onPlay: { play(r) },
                 onDelete: { delete(r) }
               )
@@ -43,21 +51,15 @@ struct LibraryView: View {
     }
     .sheet(isPresented: $showPlayer) {
       if let sp {
-        PlayerView(sp: sp)
-          .environmentObject(set)
+        PlayerView(sp: sp).environmentObject(set)
       } else {
-        Text("No player loaded")
-          .padding()
+        Text("No player loaded").padding()
       }
     }
   }
 
   private func cols() -> [GridItem] {
     [GridItem(.adaptive(minimum: 320), spacing: 18)]
-  }
-
-  private func status(for r: PaperRec) -> PaperStatus {
-    .ready
   }
 
   private func play(_ r: PaperRec) {
@@ -84,3 +86,4 @@ struct LibraryView: View {
     lib.add(r)
   }
 }
+
