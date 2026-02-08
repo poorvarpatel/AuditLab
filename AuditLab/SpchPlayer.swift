@@ -28,6 +28,8 @@ final class SpchPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
   private var seq: [Tok] = []
   private var tokIx: Int = 0
   private var set: AppSet
+  private var isPaused = false // track if we paused mid-utterance
+  private var isJumping = false // prevent concurrent jumps
 
   // token stream: headings + sentences
   private enum Tok {
@@ -61,22 +63,36 @@ final class SpchPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
     setWin()
     headTxt = nil
     st = .idle
+    isPaused = false
   }
 
   func play() {
     guard st != .play else { return }
     st = .play
-    step()
+    
+    if isPaused && syn.isPaused {
+      // Resume from pause
+      isPaused = false
+      syn.continueSpeaking()
+    } else {
+      // Start fresh or restart if pause state is stale
+      isPaused = false
+      step()
+    }
   }
 
   func pause() {
     guard st == .play else { return }
     st = .pause
-    syn.pauseSpeaking(at: .word)
+    if syn.isSpeaking {
+      isPaused = true
+      syn.pauseSpeaking(at: .word)
+    }
   }
 
   func stop() {
     st = .idle
+    isPaused = false
     syn.stopSpeaking(at: .immediate)
   }
 
@@ -87,6 +103,12 @@ final class SpchPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
   // "±10s" jump using words/sec heuristic
   func jumpSec(_ sec: Double) {
     guard let p = pack else { return }
+    guard !isJumping else { return } // prevent concurrent jumps
+    
+    isJumping = true
+    isPaused = false
+    syn.stopSpeaking(at: .immediate)
+    
     // Find current sentence index if token points at sentence
     let curIdx = curSent
     let dir = sec >= 0 ? 1 : -1
@@ -99,6 +121,7 @@ final class SpchPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
       i += dir
     }
     let newIdx = min(max(0, i), max(0, p.sents.count - 1))
+    
     // Move token pointer to next occurrence of sent(newIdx)
     if let t = seq.firstIndex(where: { tok in
       if case .sent(let si) = tok { return si == newIdx }
@@ -108,8 +131,19 @@ final class SpchPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
       curSent = newIdx
       setWin()
       headTxt = nil
-      syn.stopSpeaking(at: .immediate)
-      if st == .play { step() }
+      
+      // Small delay to let synthesizer fully stop, then restart
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+        guard let self else { return }
+        self.isJumping = false
+        
+        // Restart if we were playing
+        if self.st == .play {
+          self.step()
+        }
+      }
+    } else {
+      isJumping = false
     }
   }
 
@@ -192,23 +226,26 @@ final class SpchPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
     case .gap(let s):
       headTxt = nil
       syn.stopSpeaking(at: .immediate)
+      isPaused = false
       DispatchQueue.main.asyncAfter(deadline: .now() + s) { [weak self] in
-        self?.tokIx += 1
-        self?.step()
+        guard let self, self.st == .play else { return }
+        self.tokIx += 1
+        self.step()
       }
 
     case .head(let t):
       // show heading solo moment
       headTxt = t
       syn.stopSpeaking(at: .immediate)
+      isPaused = false
       speak(t)
       // heading will advance in didFinish
 
     case .sent(let i):
       headTxt = nil
-      curSent = i
-      setWin()
+      isPaused = false
       speak(pack?.sents[i].text ?? "")
+      // curSent will be updated in didStart delegate
       // advance in didFinish
     }
   }
@@ -241,6 +278,18 @@ final class SpchPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
   // MARK: - AVSpeechSynthesizerDelegate
     
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
+                                       didStart utterance: AVSpeechUtterance) {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            // Update curSent when we actually start speaking
+            if case .sent(let i) = self.seq[safe: self.tokIx] {
+                self.curSent = i
+                self.setWin()
+            }
+        }
+    }
+    
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
                                        didFinish utterance: AVSpeechUtterance) {
         Task { @MainActor [weak self] in
             guard let self else { return }
@@ -248,5 +297,12 @@ final class SpchPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
             self.tokIx += 1
             self.step()
         }
+    }
+}
+
+// Safe array subscript
+extension Array {
+    subscript(safe index: Int) -> Element? {
+        return indices.contains(index) ? self[index] : nil
     }
 }
