@@ -9,9 +9,16 @@ import SwiftUI
 
 @main
 struct AuditLabApp: App {
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
+  @StateObject private var set = AppSet()
+  @StateObject private var lib = LibStore()
+  @StateObject private var q = QueueStore()
+
+  var body: some Scene {
+    WindowGroup {
+      RootView()
+        .environmentObject(set)
+        .environmentObject(lib)
+        .environmentObject(q)
     }
+  }
 }

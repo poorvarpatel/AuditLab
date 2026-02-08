@@ -1,0 +1,252 @@
+//
+//  SpchPlayer.swift
+//  AuditLab
+//
+//  Created by Poorva Patel on 2/7/26.
+//
+
+import Foundation
+import Combine
+import AVFoundation
+
+enum PlaySt {
+  case idle, play, pause
+}
+
+@MainActor
+final class SpchPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
+  @Published var st: PlaySt = .idle
+  @Published var spd: Double = 1.0
+  @Published var pack: ReadPack? = nil
+
+  // Playback cursor
+  @Published var curSent: Int = 0
+  @Published var winIds: [String] = [] // 5 ids shown in transcript
+  @Published var headTxt: String? = nil // current section heading (solo display moments)
+
+  private let syn = AVSpeechSynthesizer()
+  private var seq: [Tok] = []
+  private var tokIx: Int = 0
+  private var set: AppSet
+
+  // token stream: headings + sentences
+  private enum Tok {
+    case head(String)     // section title
+    case sent(Int)        // index into pack.sents
+    case gap(Double)      // pause in seconds
+  }
+
+  init(set: AppSet) {
+    self.set = set
+    super.init()
+    syn.delegate = self
+    cfgAudio()
+  }
+
+  private func cfgAudio() {
+    let ses = AVAudioSession.sharedInstance()
+    do {
+      try ses.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
+      try ses.setActive(true)
+    } catch {
+      print("audio err:", error)
+    }
+  }
+
+  func load(_ p: ReadPack, q: QItem) {
+    self.pack = p
+    buildSeq(p, q)
+    tokIx = 0
+    curSent = 0
+    setWin()
+    headTxt = nil
+    st = .idle
+  }
+
+  func play() {
+    guard st != .play else { return }
+    st = .play
+    step()
+  }
+
+  func pause() {
+    guard st == .play else { return }
+    st = .pause
+    syn.pauseSpeaking(at: .word)
+  }
+
+  func stop() {
+    st = .idle
+    syn.stopSpeaking(at: .immediate)
+  }
+
+  func setSpd(_ v: Double) {
+    spd = min(3.5, max(0.25, v))
+  }
+
+  // "±10s" jump using words/sec heuristic
+  func jumpSec(_ sec: Double) {
+    guard let p = pack else { return }
+    // Find current sentence index if token points at sentence
+    let curIdx = curSent
+    let dir = sec >= 0 ? 1 : -1
+    let goal = abs(sec) * set.wps
+    var acc: Double = 0
+    var i = curIdx
+    while i >= 0 && i < p.sents.count && acc < goal {
+      let wc = Double(p.sents[i].text.split(separator: " ").count)
+      acc += wc
+      i += dir
+    }
+    let newIdx = min(max(0, i), max(0, p.sents.count - 1))
+    // Move token pointer to next occurrence of sent(newIdx)
+    if let t = seq.firstIndex(where: { tok in
+      if case .sent(let si) = tok { return si == newIdx }
+      return false
+    }) {
+      tokIx = t
+      curSent = newIdx
+      setWin()
+      headTxt = nil
+      syn.stopSpeaking(at: .immediate)
+      if st == .play { step() }
+    }
+  }
+
+  // MARK: - Sequence build
+
+  private func buildSeq(_ p: ReadPack, _ q: QItem) {
+    var out: [Tok] = []
+
+    // Speak meta first
+    let metaTxt = metaSpeak(p.meta)
+    out.append(.head(metaTxt))
+    out.append(.gap(0.4))
+
+    // For each section in order, if enabled, add heading + pauses + sentences
+    for s in p.secs {
+      if s.kind == "bib" { continue } // never read bibliography
+      if s.kind == "appendix", !q.incApp { continue }
+      if s.kind == "sum", !q.incSum { continue }
+      if !q.secOn.contains(s.id) { continue }
+
+      out.append(.gap(0.3))
+      out.append(.head(s.title))
+      out.append(.gap(0.35))
+
+      for sid in s.sentIds {
+        if let ix = p.sents.firstIndex(where: { $0.id == sid }) {
+          out.append(.sent(ix))
+        }
+      }
+    }
+
+    seq = out
+  }
+    
+    private func bestVoice() -> AVSpeechSynthesisVoice? {
+      // Prefer Siri / premium-ish voices if present; fall back to en-US
+      let prefs = [
+        "com.apple.voice.compact.en-US.Samantha",
+        "com.apple.voice.enhanced.en-US.Samantha",
+        "com.apple.ttsbundle.siri_female_en-US_compact",
+        "com.apple.ttsbundle.siri_male_en-US_compact"
+      ]
+
+      let all = AVSpeechSynthesisVoice.speechVoices()
+
+      for id in prefs {
+        if let v = all.first(where: { $0.identifier == id }) { return v }
+      }
+
+      // Otherwise pick any en-US voice (often multiple exist)
+      if let v = all.first(where: { $0.language == "en-US" }) { return v }
+      return AVSpeechSynthesisVoice(language: "en-US")
+    }
+
+
+  private func metaSpeak(_ m: Meta) -> String {
+    var parts: [String] = []
+    parts.append(m.title)
+
+    if m.auths.count > 0 && m.auths.count <= 2 {
+      parts.append("By \(m.auths.joined(separator: " and "))")
+    }
+    if let d = m.date, !d.isEmpty {
+      parts.append("Published \(d)")
+    }
+    return parts.joined(separator: ". ")
+  }
+
+  // MARK: - Stepping
+
+  private func step() {
+    guard st == .play, tokIx < seq.count else {
+      st = .idle
+      return
+    }
+
+    let tok = seq[tokIx]
+
+    switch tok {
+    case .gap(let s):
+      headTxt = nil
+      syn.stopSpeaking(at: .immediate)
+      DispatchQueue.main.asyncAfter(deadline: .now() + s) { [weak self] in
+        self?.tokIx += 1
+        self?.step()
+      }
+
+    case .head(let t):
+      // show heading solo moment
+      headTxt = t
+      syn.stopSpeaking(at: .immediate)
+      speak(t)
+      // heading will advance in didFinish
+
+    case .sent(let i):
+      headTxt = nil
+      curSent = i
+      setWin()
+      speak(pack?.sents[i].text ?? "")
+      // advance in didFinish
+    }
+  }
+
+  private func speak(_ txt: String) {
+    let utt = AVSpeechUtterance(string: txt)
+      utt.voice = bestVoice()
+
+    // Map speed factor to AVSpeech rate range (rough but works well)
+    let base = AVSpeechUtteranceDefaultSpeechRate // ~0.5-ish normalized
+    let raw = base * Float(spd)
+    utt.rate = min(0.6, max(0.1, raw))
+      utt.pitchMultiplier = 0.95   // slightly lower, less “chipmunk”
+      utt.preUtteranceDelay = 0.02
+      utt.postUtteranceDelay = 0.02
+
+    syn.speak(utt)
+  }
+
+  private func setWin() {
+    guard let p = pack else { return }
+    let i = curSent
+    let ids = (i-2...i+2).compactMap { j -> String? in
+      guard j >= 0 && j < p.sents.count else { return nil }
+      return p.sents[j].id
+    }
+    winIds = ids
+  }
+
+  // MARK: - AVSpeechSynthesizerDelegate
+    
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
+                                       didFinish utterance: AVSpeechUtterance) {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            guard self.st == .play else { return }
+            self.tokIx += 1
+            self.step()
+        }
+    }
+}
