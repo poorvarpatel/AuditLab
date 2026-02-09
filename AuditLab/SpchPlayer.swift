@@ -30,6 +30,7 @@ final class SpchPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
   private var set: AppSet
   private var isPaused = false // track if we paused mid-utterance
   private var isJumping = false // prevent concurrent jumps
+  private var justJumped = false // track if we just jumped to prevent didStart overwrite
   
   // Callback when paper finishes
   var onPaperComplete: (() -> Void)?
@@ -103,50 +104,57 @@ final class SpchPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
     spd = min(3.5, max(0.25, v))
   }
 
-  // "±10s" jump using words/sec heuristic
+  // Jump forward or backward by N sentences
   func jumpSec(_ sec: Double) {
     guard let p = pack else { return }
-    guard !isJumping else { return } // prevent concurrent jumps
+    guard !isJumping else { return }
     
     isJumping = true
     isPaused = false
     syn.stopSpeaking(at: .immediate)
     
-    // Find current sentence index if token points at sentence
-    let curIdx = curSent
-    let dir = sec >= 0 ? 1 : -1
-    let goal = abs(sec) * set.wps
-    var acc: Double = 0
-    var i = curIdx
-    while i >= 0 && i < p.sents.count && acc < goal {
-      let wc = Double(p.sents[i].text.split(separator: " ").count)
-      acc += wc
-      i += dir
-    }
-    let newIdx = min(max(0, i), max(0, p.sents.count - 1))
+    // Jump by ~3 sentences per button press (roughly 10 seconds at normal speed)
+    let sentencesToJump = sec >= 0 ? 3 : -3
     
-    // Move token pointer to next occurrence of sent(newIdx)
-    if let t = seq.firstIndex(where: { tok in
-      if case .sent(let si) = tok { return si == newIdx }
-      return false
-    }) {
-      tokIx = t
-      curSent = newIdx
-      setWin()
-      headTxt = nil
-      
-      // Small delay to let synthesizer fully stop, then restart
-      DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-        guard let self else { return }
-        self.isJumping = false
-        
-        // Restart if we were playing
-        if self.st == .play {
-          self.step()
-        }
+    // Find all sentence tokens in the sequence
+    var sentenceTokens: [(tokIdx: Int, sentIdx: Int)] = []
+    for (i, tok) in seq.enumerated() {
+      if case .sent(let sentIdx) = tok {
+        sentenceTokens.append((i, sentIdx))
       }
-    } else {
+    }
+    
+    // Find current position in sentence token array
+    guard let currentPos = sentenceTokens.firstIndex(where: { $0.tokIdx == tokIx }) else {
       isJumping = false
+      return
+    }
+    
+    // Calculate new position
+    let newPos = min(max(0, currentPos + sentencesToJump), sentenceTokens.count - 1)
+    let (newTokIdx, newSentIdx) = sentenceTokens[newPos]
+    
+    // Update position
+    tokIx = newTokIdx
+    curSent = newSentIdx
+    setWin()
+    headTxt = nil
+    justJumped = true
+    
+    // Small delay to let synthesizer fully stop, then restart
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+      guard let self else { return }
+      self.isJumping = false
+      
+      // Restart if we were playing
+      if self.st == .play {
+        self.step()
+      }
+      
+      // Reset justJumped after speaking starts
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        self.justJumped = false
+      }
     }
   }
 
@@ -300,6 +308,9 @@ final class SpchPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
                                        didStart utterance: AVSpeechUtterance) {
         Task { @MainActor [weak self] in
             guard let self else { return }
+            // Don't update if we just jumped - let the jump value stick
+            guard !self.justJumped else { return }
+            
             // Update curSent when we actually start speaking
             if case .sent(let i) = self.seq[safe: self.tokIx] {
                 self.curSent = i
