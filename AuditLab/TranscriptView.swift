@@ -15,57 +15,68 @@ struct TranscriptView: View {
   @State private var userScr: Bool = false
 
   var body: some View {
-    VStack(spacing: 10) {
-      if let h = sp.headTxt {
-        Text(h)
-          .font(.title3.weight(.semibold))
-          .multilineTextAlignment(.center)
-          .padding(.vertical, 18)
-      } else {
-        ScrollViewReader { proxy in
-          ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-              ForEach(lines(), id: \.id) { row in
-                Text(row.text)
-                  .font(.system(size: 17))
-                  .padding(.vertical, 6)
-                  .padding(.horizontal, 10)
-                  .background(row.isCur ? Color.yellow.opacity(0.35) : Color.clear)
-                  .clipShape(RoundedRectangle(cornerRadius: 10))
-                  .id(row.id)
-                  .onTapGesture {
-                    if !row.isCur { tapLine(row.idx) }
-                  }
-              }
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
-            .gesture(
-              DragGesture().onChanged { _ in
-                if !userScr { userScr = true }
-              }
-            )
-          }
-          .onChange(of: sp.curSent) {
-            guard !userScr else { return }
-            withAnimation(.easeInOut(duration: 0.18)) {
-              if let p = sp.pack {
-                let id = p.sents[sp.curSent].id
-                proxy.scrollTo(id, anchor: .center)
-              }
+    ScrollViewReader { proxy in
+      VStack(spacing: 10) {
+
+        // Optional heading, but DO NOT replace the scrollable transcript
+        if let h = sp.headTxt {
+          Text(h)
+            .font(.title3.weight(.semibold))
+            .multilineTextAlignment(.center)
+            .padding(.vertical, 18)
+        }
+
+        ScrollView {
+          LazyVStack(alignment: .leading, spacing: 12) {
+            ForEach(lines(), id: \.id) { row in
+              Text(row.text)
+                .font(.system(size: 17))
+                .padding(.vertical, 6)
+                .padding(.horizontal, 10)
+                .background(row.isCur ? Color.yellow.opacity(0.35) : Color.clear)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .id(row.id)
+                .onTapGesture {
+                  if !row.isCur { tapLine(row.idx) }
+                }
             }
           }
+          .padding(.horizontal, 14)
+          .padding(.vertical, 10)
+        }
+        .frame(maxHeight: .infinity) // <-- makes it reliably scrollable inside the parent VStack
+        .simultaneousGesture(
+          DragGesture(minimumDistance: 2).onChanged { _ in
+            if !userScr { userScr = true }
+          }
+        )
+        .onChange(of: sp.curSent) { _, _ in
+          guard !userScr else { return }
+          scrollToCurrent(proxy)
+        }
+        .onChange(of: sp.pack?.id) { _, _ in
+          // when a new paper loads, snap to current
+          guard !userScr else { return }
+          DispatchQueue.main.async { scrollToCurrent(proxy) }
         }
 
         if userScr {
           Button("Return to Reading") {
             userScr = false
+            scrollToCurrent(proxy)   // <-- immediate snap back
           }
           .buttonStyle(.borderedProminent)
           .padding(.bottom, 6)
         }
       }
+    }
+  }
+
+  private func scrollToCurrent(_ proxy: ScrollViewProxy) {
+    guard let p = sp.pack, p.sents.indices.contains(sp.curSent) else { return }
+    let id = p.sents[sp.curSent].id
+    withAnimation(.easeInOut(duration: 0.18)) {
+      proxy.scrollTo(id, anchor: .center)
     }
   }
 
@@ -76,20 +87,18 @@ struct TranscriptView: View {
     var isCur: Bool
   }
 
-  private func lines() -> [Row] {
-    guard let p = sp.pack else { return [] }
-    let i = sp.curSent
-    let rng = (i-2...i+2)
-    return rng.compactMap { j in
-      guard j >= 0 && j < p.sents.count else { return nil }
-      return Row(
-        id: p.sents[j].id,
-        idx: j,
-        text: p.sents[j].text,
-        isCur: j == i
-      )
+    private func lines() -> [Row] {
+        guard let p = sp.pack else { return [] }
+        let i = sp.curSent
+        return p.sents.enumerated().map { j, sent in
+            Row(
+                id: sent.id,
+                idx: j,
+                text: sent.text,
+                isCur: j == i
+            )
+        }
     }
-  }
 
   private func tapLine(_ idx: Int) {
     guard set.skipAsk else {

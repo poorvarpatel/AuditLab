@@ -166,7 +166,7 @@ final class SpchPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
     // Speak meta first
     let metaTxt = metaSpeak(p.meta)
     out.append(.head(metaTxt))
-    out.append(.gap(0.4))
+    out.append(.gap(0.8)) // Short pause after title/meta (first section heading will have its own pause)
 
     // For each section in order, if enabled, add heading + pauses + sentences
     for s in p.secs {
@@ -175,9 +175,9 @@ final class SpchPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
       if s.kind == "sum", !q.incSum { continue }
       if !q.secOn.contains(s.id) { continue }
 
-      out.append(.gap(0.3))
+      out.append(.gap(1.5)) // 1.5 second pause before section heading
       out.append(.head(s.title))
-      out.append(.gap(0.35))
+      out.append(.gap(1.5)) // 1.5 second pause after section heading
 
       for sid in s.sentIds {
         if let ix = p.sents.firstIndex(where: { $0.id == sid }) {
@@ -187,10 +187,10 @@ final class SpchPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
     }
     
     // Add conclusion announcement at the end
-    out.append(.gap(0.5))
+    out.append(.gap(2.0))
     let conclusionTxt = conclusionSpeak(p.meta)
     out.append(.head(conclusionTxt))
-    out.append(.gap(0.5))
+    out.append(.gap(2.0))
 
     seq = out
   }

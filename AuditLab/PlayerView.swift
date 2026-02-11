@@ -42,9 +42,9 @@ struct PlayerView: View {
             
             // Transcript (middle)
             TranscriptView(sp: sp)
-                .environmentObject(set)
-                .frame(maxHeight: .infinity)
-                .padding(.horizontal, 14)
+              .environmentObject(set)
+              .layoutPriority(1)
+              .padding(.horizontal, 14)
             
             // Controls (collapsible dock)
             ctrlDock()
@@ -116,7 +116,7 @@ struct PlayerView: View {
                 
                 // Load first paper from folder
                 if let firstPaper = folderPapers.first {
-                    let nextPack = DemoData.pack(id: firstPaper.paperId)
+                    guard let nextPack = lib.getPack(id: firstPaper.paperId) else { return }
                     player.load(nextPack, q: firstPaper)
                     player.play()
                 }
@@ -126,7 +126,7 @@ struct PlayerView: View {
             }
         } else {
             // Regular paper - load and play
-            let nextPack = DemoData.pack(id: nextItem.paperId)
+            guard let nextPack = lib.getPack(id: nextItem.paperId) else { return }
             player.load(nextPack, q: nextItem)
             player.play()
         }
@@ -202,14 +202,27 @@ struct PlayerView: View {
                 in: 0.25...3.5
             )
             
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach([0.25,0.5,0.75,1.0,1.5,2.0,2.5,3.0], id: \.self) { v in
-                        Button(String(format: "%.2gx", v)) { sp.setSpd(v) }
-                            .buttonStyle(.bordered)
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach([0.25,0.5,0.75,1.0,1.5,2.0,2.5,3.0], id: \.self) { v in
+                            Button(String(format: "%.2gx", v)) { sp.setSpd(v) }
+                                .buttonStyle(.bordered)
+                                .id(v)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 50) // Show ~4 buttons at a time
+                .onAppear {
+                    // Scroll to 0.75x on first appearance
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        withAnimation {
+                            proxy.scrollTo(0.75, anchor: .center)
+                        }
                     }
                 }
-                .padding(.vertical, 2)
             }
         }
     }
