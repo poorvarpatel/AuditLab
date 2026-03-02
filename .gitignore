@@ -1,0 +1,85 @@
+# -----------------------------------------------------------------------------
+# Modern iOS / Swift / Xcode
+# -----------------------------------------------------------------------------
+
+# Xcode user state and workspace data
+xcuserdata/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+
+# Build and derived data
+build/
+Build/
+DerivedData/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+*.xccheckout
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.build/
+.swiftpm/
+# Package.resolved — uncomment to ignore (many teams commit it for reproducibility)
+
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/Build/
+
+# Fastlane (generated reports and metadata; keep Fastfile/lane configs if committed)
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output/
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# Code coverage and profiling
+*.gcno
+*.gcda
+*.profdata
+coverage/
+
+# Archives and exports (local only)
+*.xcarchive
+ExportOptions.plist
+
+# -----------------------------------------------------------------------------
+# macOS and editors
+# -----------------------------------------------------------------------------
+.DS_Store
+*.swp
+*~
+.AppleDouble
+.LSOverride
+.Trashes
+
+# JetBrains
+.idea/
+*.iml
+
+# -----------------------------------------------------------------------------
+# BMAD method (generated outputs and local tooling)
+# -----------------------------------------------------------------------------
+
+# BMAD workflow outputs (planning, implementation, test artifacts, bmb-creations)
+
+_bmad-output/cache/
+_bmad-output/tmp/
+_bmad-output/web-bundles/
+_bmad/_memory/
+# Cursor IDE (project-specific settings and caches)
+.cursor/
