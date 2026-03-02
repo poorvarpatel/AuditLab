@@ -1,0 +1,13 @@
+{
+  "repository_type": "monolith",
+  "parts": [
+    {
+      "part_id": "app",
+      "display_name": "AuditLab",
+      "project_type_id": "mobile",
+      "root_path": "/Users/hajoonkim/git/clone/michaelamici/AuditLab",
+      "entry_point": "AuditLab/AuditLabApp.swift"
+    }
+  ],
+  "integration_points": []
+}
