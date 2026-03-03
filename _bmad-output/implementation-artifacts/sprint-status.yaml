@@ -43,11 +43,11 @@ development_status:
   epic-1: in-progress
   1-1-core-data-model-and-persistence-stack: done
   1-2-queue-and-app-settings-persistence: done
-  1-3-historyitem-persistence: backlog
-  1-4-migration-from-current-state-to-core-data: backlog
-  epic-1-retrospective: optional
+  1-3-historyitem-persistence: done
+  1-4-migration-from-current-state-to-core-data: done
+  epic-1-retrospective: done
 
-  epic-2: backlog
+  epic-2: in-progress
   2-1-add-pdf-to-library-via-document-picker: backlog
   2-2-pdf-parse-failure-and-large-file-handling: backlog
   2-3-view-library-as-list-or-grid: backlog

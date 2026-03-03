@@ -85,9 +85,7 @@ struct PlayerView: View {
     private func handlePaperCompletion(_ player: SpchPlayer) {
         // Mark current paper as read
         if let currentPaperId = player.pack?.id {
-            if let idx = lib.recs.firstIndex(where: { $0.id == currentPaperId }) {
-                lib.recs[idx].isRead = true
-            }
+            lib.markRead(id: currentPaperId)
         }
         
         // Advance queue and load next paper

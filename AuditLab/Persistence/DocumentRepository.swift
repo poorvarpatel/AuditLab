@@ -10,6 +10,7 @@ import CoreData
 
 enum DocumentRepositoryError: Error {
     case invalidObjectType(expectedEntity: String)
+    case invalidDuration
 }
 
 protocol DocumentRepositoryProtocol {
@@ -18,6 +19,7 @@ protocol DocumentRepositoryProtocol {
     func deleteDocument(_ document: Document) throws
     func addFolder(identity: UUID, name: String, createdAt: Date) throws
     func fetchFolders() throws -> [Folder]
+    func updateFolderName(_ folder: Folder, name: String) throws
     func deleteFolder(_ folder: Folder) throws
     func addDocumentToFolder(document: Document, folder: Folder) throws
     func removeDocumentFromFolder(document: Document, folder: Folder) throws
@@ -32,6 +34,11 @@ protocol DocumentRepositoryProtocol {
 
     func saveSettings(voiceIdentifier: String?, speechRate: Double, appearance: String, skipAsk: Bool, figBg: Bool) throws
     func fetchSettings() throws -> AppSettings?
+
+    /// Saves a history entry (e.g. after playback or pause). Writes on a background context. Document optional (nullify when document is deleted).
+    func saveHistoryEntry(document: Document?, playedAt: Date, lastSentenceId: String?, durationSeconds: Double) throws
+    /// Fetches history entries, optionally filtered by document, date range, and/or folder. Sorted by playedAt descending. Reads from viewContext.
+    func fetchHistoryEntries(byDocument: Document?, byFolder: Folder?, from startDate: Date?, to endDate: Date?) throws -> [HistoryItem]
 }
 
 final class DocumentRepository: DocumentRepositoryProtocol {
@@ -95,6 +102,18 @@ final class DocumentRepository: DocumentRepositoryProtocol {
         let request = Folder.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(keyPath: \Folder.createdAt, ascending: false)]
         return try viewContext.fetch(request)
+    }
+
+    func updateFolderName(_ folder: Folder, name: String) throws {
+        let objectID = folder.objectID
+        let ctx = persistenceController.newBackgroundContext()
+        try ctx.performAndWait {
+            guard let f = ctx.object(with: objectID) as? Folder else {
+                throw DocumentRepositoryError.invalidObjectType(expectedEntity: "Folder")
+            }
+            f.name = name
+            try ctx.save()
+        }
     }
 
     func deleteFolder(_ folder: Folder) throws {
@@ -272,5 +291,47 @@ final class DocumentRepository: DocumentRepositoryProtocol {
         let request = AppSettings.fetchRequest()
         request.fetchLimit = 1
         return try viewContext.fetch(request).first
+    }
+
+    // MARK: - History
+
+    /// Saves a history entry (e.g. after playback or pause). Writes on a background context. Document optional so entries can remain when document is deleted (nullify).
+    func saveHistoryEntry(document: Document?, playedAt: Date, lastSentenceId: String?, durationSeconds: Double) throws {
+        guard durationSeconds >= 0 else { throw DocumentRepositoryError.invalidDuration }
+        let docID = document?.objectID
+        let ctx = persistenceController.newBackgroundContext()
+        try ctx.performAndWait {
+            let item = HistoryItem(context: ctx)
+            item.playedAt = playedAt
+            item.lastSentenceId = lastSentenceId
+            item.durationSeconds = durationSeconds
+            if let id = docID {
+                item.document = ctx.object(with: id) as? Document
+            }
+            try ctx.save()
+        }
+    }
+
+    /// Fetches history entries, optionally filtered by document, folder, and/or date range. Sorted by playedAt descending (most recent first). Reads from viewContext.
+    func fetchHistoryEntries(byDocument: Document?, byFolder: Folder?, from startDate: Date?, to endDate: Date?) throws -> [HistoryItem] {
+        let request = HistoryItem.fetchRequest()
+        var predicates: [NSPredicate] = []
+        if let doc = byDocument {
+            predicates.append(NSPredicate(format: "document == %@", doc))
+        }
+        if let folder = byFolder {
+            predicates.append(NSPredicate(format: "ANY document.documentFolders.folder == %@", folder))
+        }
+        if let from = startDate {
+            predicates.append(NSPredicate(format: "playedAt >= %@", from as NSDate))
+        }
+        if let to = endDate {
+            predicates.append(NSPredicate(format: "playedAt <= %@", to as NSDate))
+        }
+        if !predicates.isEmpty {
+            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+        }
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \HistoryItem.playedAt, ascending: false)]
+        return try viewContext.fetch(request)
     }
 }

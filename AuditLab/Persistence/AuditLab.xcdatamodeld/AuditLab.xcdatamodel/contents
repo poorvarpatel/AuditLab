@@ -6,7 +6,7 @@
         <attribute name="identity" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="title" optional="YES" attributeType="String"/>
         <relationship name="documentFolders" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="DocumentFolder" inverseName="document" inverseEntity="DocumentFolder"/>
-        <relationship name="historyItems" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="HistoryItem" inverseName="document" inverseEntity="HistoryItem"/>
+        <relationship name="historyItems" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="HistoryItem" inverseName="document" inverseEntity="HistoryItem"/>
         <relationship name="queueEntries" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="QueueEntry" inverseName="document" inverseEntity="QueueEntry"/>
     </entity>
     <entity name="DocumentFolder" representedClassName="DocumentFolder" syncable="YES" codeGenerationType="class">

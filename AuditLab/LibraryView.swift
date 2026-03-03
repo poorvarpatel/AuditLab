@@ -123,7 +123,7 @@ struct LibraryView: View {
   }
 
   private func delete(_ r: PaperRec) {
-    lib.recs.removeAll { $0.id == r.id }
+    lib.delete(r)
   }
   
   private func addToQueue(_ r: PaperRec) {
@@ -140,21 +140,18 @@ struct LibraryView: View {
         // Parse PDF
         let pack = try await PDFParser.parse(url: url)
         
-        // Store pack
-        lib.storePack(pack)
-        
-        // Create library record
+        // Create library record; document identity is UUID so getPack(r.id) works after add
+        let docId = UUID()
         let rec = PaperRec(
-          id: pack.id,
+          id: docId.uuidString,
           title: pack.meta.title,
           auths: pack.meta.auths,
           date: pack.meta.date,
           addedAt: Date(),
           isRead: false
         )
-        
-        // Add to library
-        lib.add(rec)
+        // Add to library and associate pack under document id
+        lib.add(rec, documentIdentity: docId, pack: pack)
         
         isParsingPDF = false
       } catch {
@@ -192,7 +189,7 @@ struct LibraryView: View {
 
   private func addDemo() {
     for (pack, rec) in DemoData.allDemoPapers() {
-      lib.add(rec)
+      lib.add(rec, documentIdentity: UUID(), pack: pack)
     }
   }
 }

@@ -80,6 +80,16 @@ final class DocumentRepositoryTests: XCTestCase {
         XCTAssertEqual(try repo.fetchDocumentsInFolder(folder).count, 1)
     }
 
+    func testUpdateFolderName() throws {
+        let id = UUID()
+        try repo.addFolder(identity: id, name: "Original", createdAt: Date())
+        let folder = try repo.fetchFolders().first!
+        try repo.updateFolderName(folder, name: "Renamed")
+        let folders = try repo.fetchFolders()
+        XCTAssertEqual(folders.first?.name, "Renamed")
+        XCTAssertEqual(folders.first?.identity, id)
+    }
+
     // MARK: - Queue
 
     func testAddAndFetchQueueEntriesInOrder() throws {
@@ -194,5 +204,114 @@ final class DocumentRepositoryTests: XCTestCase {
         entries = try repo.fetchQueueEntries()
         XCTAssertEqual(entries.count, 1)
         XCTAssertNil(entries.first?.document)
+    }
+
+    // MARK: - History
+
+    func testSaveHistoryEntryAndFetch() throws {
+        let playedAt = Date()
+        try repo.saveHistoryEntry(document: nil, playedAt: playedAt, lastSentenceId: "sent-1", durationSeconds: 120.5)
+
+        let entries = try repo.fetchHistoryEntries(byDocument: nil, byFolder: nil, from: nil, to: nil)
+        XCTAssertEqual(entries.count, 1)
+        XCTAssertEqual(entries.first?.lastSentenceId, "sent-1")
+        XCTAssertEqual(entries.first?.durationSeconds, 120.5)
+        XCTAssertNotNil(entries.first?.playedAt)
+    }
+
+    func testFetchHistoryEntriesWhenEmpty() throws {
+        let entries = try repo.fetchHistoryEntries(byDocument: nil, byFolder: nil, from: nil, to: nil)
+        XCTAssertTrue(entries.isEmpty)
+    }
+
+    func testFetchHistoryEntriesByDocument() throws {
+        try repo.addDocument(identity: UUID(), title: "Doc A", addedAt: Date(), fileReference: nil)
+        try repo.addDocument(identity: UUID(), title: "Doc B", addedAt: Date(), fileReference: nil)
+        let docA = try repo.fetchDocuments().first { $0.title == "Doc A" }!
+        let docB = try repo.fetchDocuments().first { $0.title == "Doc B" }!
+
+        try repo.saveHistoryEntry(document: docA, playedAt: Date(), lastSentenceId: nil, durationSeconds: 10)
+        try repo.saveHistoryEntry(document: docB, playedAt: Date(), lastSentenceId: nil, durationSeconds: 20)
+        try repo.saveHistoryEntry(document: docA, playedAt: Date(), lastSentenceId: "s2", durationSeconds: 30)
+
+        let forA = try repo.fetchHistoryEntries(byDocument: docA, byFolder: nil, from: nil, to: nil)
+        let forB = try repo.fetchHistoryEntries(byDocument: docB, byFolder: nil, from: nil, to: nil)
+        XCTAssertEqual(forA.count, 2)
+        XCTAssertEqual(forB.count, 1)
+        XCTAssertEqual(forB.first?.durationSeconds, 20)
+    }
+
+    func testFetchHistoryEntriesByDateRange() throws {
+        let cal = Calendar(identifier: .gregorian)
+        let start = cal.date(bySettingHour: 10, minute: 0, second: 0, of: Date())!
+        let mid = cal.date(byAdding: .hour, value: 1, to: start)!
+        let end = cal.date(byAdding: .hour, value: 2, to: start)!
+        let after = cal.date(byAdding: .hour, value: 3, to: start)!
+
+        try repo.saveHistoryEntry(document: nil, playedAt: start, lastSentenceId: nil, durationSeconds: 1)
+        try repo.saveHistoryEntry(document: nil, playedAt: mid, lastSentenceId: nil, durationSeconds: 2)
+        try repo.saveHistoryEntry(document: nil, playedAt: end, lastSentenceId: nil, durationSeconds: 3)
+        try repo.saveHistoryEntry(document: nil, playedAt: after, lastSentenceId: nil, durationSeconds: 4)
+
+        let inRange = try repo.fetchHistoryEntries(byDocument: nil, byFolder: nil, from: mid, to: end)
+        XCTAssertEqual(inRange.count, 2)
+        XCTAssertTrue(inRange.allSatisfy { $0.playedAt.map { $0 >= mid && $0 <= end } ?? false })
+    }
+
+    func testFetchHistoryEntriesOrderedByPlayedAtDescending() throws {
+        let base = Date()
+        try repo.saveHistoryEntry(document: nil, playedAt: base, lastSentenceId: "a", durationSeconds: 1)
+        try repo.saveHistoryEntry(document: nil, playedAt: base.addingTimeInterval(10), lastSentenceId: "b", durationSeconds: 2)
+        try repo.saveHistoryEntry(document: nil, playedAt: base.addingTimeInterval(-5), lastSentenceId: "c", durationSeconds: 3)
+
+        let entries = try repo.fetchHistoryEntries(byDocument: nil, byFolder: nil, from: nil, to: nil)
+        XCTAssertEqual(entries.count, 3)
+        let playedAts = entries.compactMap(\.playedAt)
+        XCTAssertEqual(playedAts, playedAts.sorted(by: >))
+        XCTAssertEqual(entries.first?.lastSentenceId, "b")
+        XCTAssertEqual(entries.last?.lastSentenceId, "c")
+    }
+
+    func testDeleteDocument_nullifiesHistoryItemDocument() throws {
+        try repo.addDocument(identity: UUID(), title: "Doc", addedAt: Date(), fileReference: nil)
+        let doc = try repo.fetchDocuments().first!
+        try repo.saveHistoryEntry(document: doc, playedAt: Date(), lastSentenceId: "s1", durationSeconds: 100)
+
+        var history = try repo.fetchHistoryEntries(byDocument: nil, byFolder: nil, from: nil, to: nil)
+        XCTAssertEqual(history.count, 1)
+        XCTAssertNotNil(history.first?.document)
+
+        try repo.deleteDocument(doc)
+        controller.viewContext.refreshAllObjects()
+
+        history = try repo.fetchHistoryEntries(byDocument: nil, byFolder: nil, from: nil, to: nil)
+        XCTAssertEqual(history.count, 1)
+        XCTAssertNil(history.first?.document)
+    }
+
+    func testFetchHistoryEntriesByFolder() throws {
+        try repo.addDocument(identity: UUID(), title: "Doc", addedAt: Date(), fileReference: nil)
+        try repo.addFolder(identity: UUID(), name: "Folder A", createdAt: Date())
+        try repo.addFolder(identity: UUID(), name: "Folder B", createdAt: Date())
+        let doc = try repo.fetchDocuments().first!
+        let folderA = try repo.fetchFolders().first { $0.name == "Folder A" }!
+        let folderB = try repo.fetchFolders().first { $0.name == "Folder B" }!
+        try repo.addDocumentToFolder(document: doc, folder: folderA)
+
+        try repo.saveHistoryEntry(document: doc, playedAt: Date(), lastSentenceId: "s1", durationSeconds: 10)
+
+        let inA = try repo.fetchHistoryEntries(byDocument: nil, byFolder: folderA, from: nil, to: nil)
+        let inB = try repo.fetchHistoryEntries(byDocument: nil, byFolder: folderB, from: nil, to: nil)
+        XCTAssertEqual(inA.count, 1)
+        XCTAssertEqual(inB.count, 0)
+    }
+
+
+    func testSaveHistoryEntryRejectsNegativeDuration() throws {
+        XCTAssertThrowsError(try repo.saveHistoryEntry(document: nil, playedAt: Date(), lastSentenceId: nil, durationSeconds: -1)) { error in
+            guard case DocumentRepositoryError.invalidDuration = error else {
+                return XCTFail("Expected DocumentRepositoryError.invalidDuration, got \(error)")
+            }
+        }
     }
 }

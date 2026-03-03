@@ -38,15 +38,10 @@ struct QueueView: View {
               )
             }
             .onDelete { indexSet in
-              for i in indexSet {
-                q.items.remove(at: i)
-              }
-              if q.idx >= q.items.count {
-                q.idx = max(0, q.items.count - 1)
-              }
+              q.remove(atOffsets: indexSet)
             }
             .onMove { source, destination in
-              q.items.move(fromOffsets: source, toOffset: destination)
+              q.move(fromOffsets: source, toOffset: destination)
             }
           }
           .listStyle(.plain)

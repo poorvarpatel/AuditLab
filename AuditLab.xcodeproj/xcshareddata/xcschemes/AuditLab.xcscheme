@@ -34,6 +34,20 @@
                ReferencedContainer = "container:AuditLab.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "A1B2C3E72F38378A0034DECB"
+               BuildableName = "AuditLabUITests.xctest"
+               BlueprintName = "AuditLabUITests"
+               ReferencedContainer = "container:AuditLab.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -51,6 +65,17 @@
                BlueprintIdentifier = "A1B2C3D82F38378A0034DECB"
                BuildableName = "AuditLabTests.xctest"
                BlueprintName = "AuditLabTests"
+               ReferencedContainer = "container:AuditLab.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "A1B2C3E72F38378A0034DECB"
+               BuildableName = "AuditLabUITests.xctest"
+               BlueprintName = "AuditLabUITests"
                ReferencedContainer = "container:AuditLab.xcodeproj">
             </BuildableReference>
          </TestableReference>

@@ -35,6 +35,23 @@ final class PersistenceController {
         viewContext = container.viewContext
     }
 
+    /// Initializer for tests: use a file-backed store at the given URL so "restart" can be simulated with a new controller and same URL.
+    init(storeURL: URL) {
+        container = NSPersistentContainer(name: "AuditLab")
+        let desc = NSPersistentStoreDescription(url: storeURL)
+        container.persistentStoreDescriptions = [desc]
+
+        container.loadPersistentStores { _, error in
+            if let error = error as NSError? {
+                fatalError("Unresolved Core Data error \(error), \(error.userInfo)")
+            }
+        }
+
+        container.viewContext.automaticallyMergesChangesFromParent = true
+        container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        viewContext = container.viewContext
+    }
+
     func newBackgroundContext() -> NSManagedObjectContext {
         container.newBackgroundContext()
     }
