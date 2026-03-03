@@ -1,0 +1,110 @@
+# generated: 2025-03-03
+# project: AuditLab
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: "{project-root}/_bmad-output/implementation-artifacts"
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: "2025-03-03"
+project: AuditLab
+project_key: NOKEY
+tracking_system: file-system
+story_location: "{project-root}/_bmad-output/implementation-artifacts"
+
+development_status:
+  epic-1: in-progress
+  1-1-core-data-model-and-persistence-stack: done
+  1-2-queue-and-app-settings-persistence: backlog
+  1-3-historyitem-persistence: backlog
+  1-4-migration-from-current-state-to-core-data: backlog
+  epic-1-retrospective: optional
+
+  epic-2: backlog
+  2-1-add-pdf-to-library-via-document-picker: backlog
+  2-2-pdf-parse-failure-and-large-file-handling: backlog
+  2-3-view-library-as-list-or-grid: backlog
+  2-4-view-document-detail: backlog
+  2-5-remove-document-from-library-with-cascade: backlog
+  2-6-empty-and-loading-states-for-library: backlog
+  epic-2-retrospective: optional
+
+  epic-3: backlog
+  3-1-create-and-name-folder: backlog
+  3-2-rename-folder: backlog
+  3-3-delete-folder: backlog
+  3-4-add-document-to-folder-many-to-many: backlog
+  3-5-remove-document-from-folder: backlog
+  3-6-view-documents-in-folder: backlog
+  3-7-view-folders-containing-a-document: backlog
+  epic-3-retrospective: optional
+
+  epic-4: backlog
+  4-1-add-document-to-queue: backlog
+  4-2-add-folder-to-queue-snapshot: backlog
+  4-3-view-current-queue: backlog
+  4-4-remove-item-from-queue: backlog
+  4-5-reorder-queue: backlog
+  epic-4-retrospective: optional
+
+  epic-5: backlog
+  5-1-start-playback-from-library-queue-or-history: backlog
+  5-2-pause-and-resume-playback: backlog
+  5-3-select-and-apply-system-voice: backlog
+  5-4-adjust-speech-rate-and-pitch-if-in-scope: backlog
+  5-5-transcript-and-figure-context-during-playback: backlog
+  5-6-store-and-restore-playback-position-sentence-level: backlog
+  5-7-restore-playback-state-after-app-termination: backlog
+  epic-5-retrospective: optional
+
+  epic-6: backlog
+  6-1-view-listening-history: backlog
+  6-2-search-history-by-document-name: backlog
+  6-3-filter-history-by-date-and-folder: backlog
+  6-4-display-timestamp-last-position-and-duration: backlog
+  6-5-open-history-entry-and-resume-playback: backlog
+  epic-6-retrospective: optional
+
+  epic-7: backlog
+  7-1-voice-selection-in-settings: backlog
+  7-2-speech-rate-and-pitch-if-in-scope-in-settings: backlog
+  7-3-appearance-system-light-dark-in-settings: backlog
+  7-4-clear-history-with-confirmation: backlog
+  7-5-app-version-display: backlog
+  epic-7-retrospective: optional
+
+  epic-8: backlog
+  8-1-accessibility-labels-on-all-interactive-elements: backlog
+  8-2-focus-order-for-voiceover: backlog
+  8-3-state-change-announcements: backlog
+  8-4-dynamic-type-support: backlog
+  8-5-tap-target-size-and-spacing: backlog
+  8-6-voiceover-only-navigation-verification: backlog
+  epic-8-retrospective: optional
