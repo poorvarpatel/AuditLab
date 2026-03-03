@@ -7,6 +7,7 @@
         <attribute name="title" optional="YES" attributeType="String"/>
         <relationship name="documentFolders" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="DocumentFolder" inverseName="document" inverseEntity="DocumentFolder"/>
         <relationship name="historyItems" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="HistoryItem" inverseName="document" inverseEntity="HistoryItem"/>
+        <relationship name="queueEntries" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="QueueEntry" inverseName="document" inverseEntity="QueueEntry"/>
     </entity>
     <entity name="DocumentFolder" representedClassName="DocumentFolder" syncable="YES" codeGenerationType="class">
         <relationship name="document" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Document" inverseName="documentFolders" inverseEntity="Document"/>
@@ -23,5 +24,21 @@
         <attribute name="lastSentenceId" optional="YES" attributeType="String"/>
         <attribute name="playedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <relationship name="document" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Document" inverseName="historyItems" inverseEntity="Document"/>
+    </entity>
+    <entity name="QueueEntry" representedClassName="QueueEntry" syncable="YES" codeGenerationType="class">
+        <attribute name="identity" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="orderIndex" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="paperId" optional="YES" attributeType="String"/>
+        <attribute name="secOn" optional="YES" attributeType="Binary"/>
+        <attribute name="incApp" optional="YES" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="incSum" optional="YES" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <relationship name="document" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Document" inverseName="queueEntries" inverseEntity="Document"/>
+    </entity>
+    <entity name="AppSettings" representedClassName="AppSettings" syncable="YES" codeGenerationType="class">
+        <attribute name="voiceIdentifier" optional="YES" attributeType="String"/>
+        <attribute name="speechRate" optional="YES" attributeType="Double" defaultValueString="2.8" usesScalarValueType="YES"/>
+        <attribute name="appearance" optional="YES" attributeType="String" defaultValueString="system"/>
+        <attribute name="skipAsk" optional="YES" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="figBg" optional="YES" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
     </entity>
 </model>

@@ -17,6 +17,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		10852E632F57571F00DE2DC6 /* AuditLabTests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; name = AuditLabTests.xctestplan; path = testplans/AuditLabTests.xctestplan; sourceTree = "<group>"; };
 		A1B2C3D42F38378A0034DECB /* AuditLabTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AuditLabTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E4FC13422F38378A0034DECB /* AuditLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AuditLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -55,6 +56,7 @@
 		E4FC13392F38378A0034DECB = {
 			isa = PBXGroup;
 			children = (
+				10852E632F57571F00DE2DC6 /* AuditLabTests.xctestplan */,
 				E4FC13442F38378A0034DECB /* AuditLab */,
 				A1B2C3D52F38378A0034DECB /* AuditLabTests */,
 				E4FC13432F38378A0034DECB /* Products */,
