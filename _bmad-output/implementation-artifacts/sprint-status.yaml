@@ -48,7 +48,7 @@ development_status:
   epic-1-retrospective: done
 
   epic-2: in-progress
-  2-1-add-pdf-to-library-via-document-picker: backlog
+  2-1-add-pdf-to-library-via-document-picker: done
   2-2-pdf-parse-failure-and-large-file-handling: backlog
   2-3-view-library-as-list-or-grid: backlog
   2-4-view-document-detail: backlog

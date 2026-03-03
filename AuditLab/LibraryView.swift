@@ -19,7 +19,6 @@ struct LibraryView: View {
   @State private var selectedFolderId: String? = nil
   @State private var showFolderDetail = false
   @State private var showFilePicker = false
-  @State private var isParsingPDF = false
 
   var body: some View {
     ZStack {
@@ -81,11 +80,12 @@ struct LibraryView: View {
     }
     .sheet(isPresented: $showFilePicker) {
       DocumentPicker { url in
-        importPDF(url: url)
+        showFilePicker = false
+        lib.addDocument(from: url)
       }
     }
     .overlay {
-      if isParsingPDF {
+      if lib.isAddingDocument {
         ZStack {
           Color.black.opacity(0.4)
             .ignoresSafeArea()
@@ -99,8 +99,18 @@ struct LibraryView: View {
           .padding(32)
           .background(Color(.systemBackground))
           .cornerRadius(16)
+          .accessibilityElement(children: .combine)
+          .accessibilityLabel("Parsing PDF")
         }
       }
+    }
+    .alert("Add PDF Failed", isPresented: Binding(
+      get: { lib.addError != nil },
+      set: { if !$0 { lib.addError = nil } }
+    )) {
+      Button("OK") {}
+    } message: {
+      Text(lib.addError ?? "")
     }
   }
 
@@ -132,56 +142,28 @@ struct LibraryView: View {
     q.add(it)
   }
   
-  private func importPDF(url: URL) {
-    isParsingPDF = true
-    
-    Task {
-      do {
-        // Parse PDF
-        let pack = try await PDFParser.parse(url: url)
-        
-        // Create library record; document identity is UUID so getPack(r.id) works after add
-        let docId = UUID()
-        let rec = PaperRec(
-          id: docId.uuidString,
-          title: pack.meta.title,
-          auths: pack.meta.auths,
-          date: pack.meta.date,
-          addedAt: Date(),
-          isRead: false
-        )
-        // Add to library and associate pack under document id
-        lib.add(rec, documentIdentity: docId, pack: pack)
-        
-        isParsingPDF = false
-      } catch {
-        print("PDF parsing error: \(error)")
-        isParsingPDF = false
-        // TODO: Show error alert to user
-      }
-    }
-  }
-  
   private func handleDrop(providers: [NSItemProvider]) {
     for provider in providers {
       provider.loadFileRepresentation(forTypeIdentifier: "com.adobe.pdf") { url, error in
-        guard let url = url else { return }
-        
-        // Copy to temporary location since the dropped file might not be accessible later
+        guard let url = url else {
+          Task { @MainActor in
+            lib.addError = "Couldn't use the dropped file. Please use Add to choose a PDF."
+          }
+          return
+        }
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(url.lastPathComponent)
-        
         do {
           if FileManager.default.fileExists(atPath: tempURL.path) {
             try FileManager.default.removeItem(at: tempURL)
           }
           try FileManager.default.copyItem(at: url, to: tempURL)
-          
-          // Import the PDF
           Task { @MainActor in
-            importPDF(url: tempURL)
+            lib.addDocument(from: tempURL)
           }
         } catch {
-          print("Error copying dropped file: \(error)")
+          Task { @MainActor in
+            lib.addError = "Couldn't use the dropped file. Please use Add to choose a PDF."
+          }
         }
       }
     }

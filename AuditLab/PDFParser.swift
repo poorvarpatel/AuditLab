@@ -15,7 +15,10 @@ enum PDFParserError: Error {
   case parsingFailed
 }
 
-@MainActor
+/// PDF parsing service.
+///
+/// **Threading:** `parse(url:)` is not main-actor isolated; it performs heavy work and must be called
+/// from a background context (e.g. `Task.detached` or a non-main actor). Call from Store only; do not call from View (NFR-P1).
 final class PDFParser {
   
   // MARK: - Text Block Structure

@@ -7,6 +7,7 @@
 
 import XCTest
 import CoreData
+import UIKit
 @testable import AuditLab
 
 @MainActor
@@ -42,6 +43,107 @@ final class StoreWiringTests: XCTestCase {
         XCTAssertEqual(docs.first?.title, "Test Paper")
         XCTAssertEqual(lib.recs.count, 1)
         XCTAssertEqual(lib.recs.first?.title, "Test Paper")
+    }
+
+    /// Story 2.1: Add PDF via document picker flow. Parsing off main; repository receives new Document; loading state set then cleared.
+    func testLibStoreAddDocumentFromURL() async throws {
+        let lib = LibStore(repository: repo)
+        XCTAssertTrue(lib.recs.isEmpty)
+        XCTAssertFalse(lib.isAddingDocument)
+
+        let pdfURL = try createMinimalTestPDF()
+        defer { try? FileManager.default.removeItem(at: pdfURL) }
+
+        lib.addDocument(from: pdfURL)
+        XCTAssertTrue(lib.isAddingDocument)
+
+        // Wait for async add to complete (parsing + persistence)
+        var waitCount = 0
+        while lib.isAddingDocument && waitCount < 100 {
+            try await Task.sleep(nanoseconds: 50_000_000) // 50ms
+            waitCount += 1
+        }
+        XCTAssertFalse(lib.isAddingDocument, "Loading should clear within ~5s")
+
+        let docs = try repo.fetchDocuments()
+        XCTAssertEqual(docs.count, 1)
+        XCTAssertEqual(lib.recs.count, 1)
+        XCTAssertFalse(lib.recs.first?.title.isEmpty ?? true)
+        XCTAssertNil(lib.addError)
+    }
+
+    /// Story 2.1 / Code review: Parse failure shows user-facing error and clears loading state.
+    func testLibStoreAddDocumentFromURLParseFailure() async throws {
+        let lib = LibStore(repository: repo)
+        let notPDF = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".pdf")
+        try "not a pdf".write(to: notPDF, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: notPDF) }
+
+        lib.addDocument(from: notPDF)
+        var waitCount = 0
+        while lib.isAddingDocument && waitCount < 100 {
+            try await Task.sleep(nanoseconds: 50_000_000)
+            waitCount += 1
+        }
+        XCTAssertFalse(lib.isAddingDocument)
+        XCTAssertTrue(lib.recs.isEmpty)
+        XCTAssertNotNil(lib.addError)
+        XCTAssertTrue(lib.addError?.contains("Couldn't read") ?? false)
+    }
+
+    /// Story 2.1 / Code review: Repository (persistence) failure shows distinct message and clears loading state.
+    func testLibStoreAddDocumentFromURLPersistenceFailure() async throws {
+        let failingRepo = ThrowingDocumentRepository(failAddDocument: true)
+        let lib = LibStore(repository: failingRepo)
+        let pdfURL = try createMinimalTestPDF()
+        defer { try? FileManager.default.removeItem(at: pdfURL) }
+
+        lib.addDocument(from: pdfURL)
+        var waitCount = 0
+        while lib.isAddingDocument && waitCount < 100 {
+            try await Task.sleep(nanoseconds: 50_000_000)
+            waitCount += 1
+        }
+        XCTAssertFalse(lib.isAddingDocument)
+        XCTAssertTrue(lib.recs.isEmpty)
+        XCTAssertNotNil(lib.addError)
+        XCTAssertTrue(lib.addError?.contains("Couldn't save") ?? false)
+    }
+
+    /// Second add while first is in progress is ignored (one loading state per operation).
+    func testLibStoreAddDocumentFromURLConcurrentAddIgnored() async throws {
+        let lib = LibStore(repository: repo)
+        let pdfURL = try createMinimalTestPDF()
+        defer { try? FileManager.default.removeItem(at: pdfURL) }
+
+        lib.addDocument(from: pdfURL)
+        XCTAssertTrue(lib.isAddingDocument)
+        lib.addDocument(from: pdfURL)
+        lib.addDocument(from: pdfURL)
+        // Still one add in flight
+        XCTAssertTrue(lib.isAddingDocument)
+
+        var waitCount = 0
+        while lib.isAddingDocument && waitCount < 100 {
+            try await Task.sleep(nanoseconds: 50_000_000)
+            waitCount += 1
+        }
+        // Only one document from the first add
+        XCTAssertEqual(lib.recs.count, 1)
+    }
+
+    private func createMinimalTestPDF() throws -> URL {
+        let pageRect = CGRect(x: 0, y: 0, width: 612, height: 792)
+        let format = UIGraphicsPDFRendererFormat()
+        let renderer = UIGraphicsPDFRenderer(bounds: pageRect, format: format)
+        let data = renderer.pdfData { context in
+            context.beginPage()
+            let attributes: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 12)]
+            "Test PDF Title".draw(at: CGPoint(x: 100, y: 700), withAttributes: attributes)
+        }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".pdf")
+        try data.write(to: url)
+        return url
     }
 
     func testLibStoreDeleteRemovesFromRepository() throws {
@@ -191,4 +293,40 @@ final class StoreWiringTests: XCTestCase {
         XCTAssertEqual(lib2.recs.count, 1)
         XCTAssertEqual(lib2.recs.first?.title, "Survives Restart")
     }
+}
+
+// MARK: - Mock for persistence-failure tests
+
+private final class ThrowingDocumentRepository: DocumentRepositoryProtocol {
+    var failAddDocument: Bool
+
+    init(failAddDocument: Bool = false) {
+        self.failAddDocument = failAddDocument
+    }
+
+    func addDocument(identity: UUID, title: String, addedAt: Date, fileReference: Data?) throws {
+        if failAddDocument {
+            throw NSError(domain: "StoreWiringTests", code: -1, userInfo: [NSLocalizedDescriptionKey: "Mock persistence failure"])
+        }
+    }
+
+    func fetchDocuments() throws -> [Document] { [] }
+    func deleteDocument(_ document: Document) throws {}
+    func addFolder(identity: UUID, name: String, createdAt: Date) throws {}
+    func fetchFolders() throws -> [Folder] { [] }
+    func updateFolderName(_ folder: Folder, name: String) throws {}
+    func deleteFolder(_ folder: Folder) throws {}
+    func addDocumentToFolder(document: Document, folder: Folder) throws {}
+    func removeDocumentFromFolder(document: Document, folder: Folder) throws {}
+    func fetchDocumentsInFolder(_ folder: Folder) throws -> [Document] { [] }
+    func fetchFoldersForDocument(_ document: Document) throws -> [Folder] { [] }
+    func addQueueEntry(identity: UUID, paperId: String, orderIndex: Int32, secOn: Set<String>, incApp: Bool, incSum: Bool, document: Document?) throws {}
+    func fetchQueueEntries() throws -> [QueueEntry] { [] }
+    func deleteQueueEntry(_ entry: QueueEntry) throws {}
+    func deleteAllQueueEntries() throws {}
+    func updateQueueOrder(entries: [QueueEntry]) throws {}
+    func saveSettings(voiceIdentifier: String?, speechRate: Double, appearance: String, skipAsk: Bool, figBg: Bool) throws {}
+    func fetchSettings() throws -> AppSettings? { nil }
+    func saveHistoryEntry(document: Document?, playedAt: Date, lastSentenceId: String?, durationSeconds: Double) throws {}
+    func fetchHistoryEntries(byDocument: Document?, byFolder: Folder?, from startDate: Date?, to endDate: Date?) throws -> [HistoryItem] { [] }
 }
