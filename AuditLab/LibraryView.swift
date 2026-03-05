@@ -13,6 +13,7 @@ struct LibraryView: View {
   @EnvironmentObject var q: QueueStore
   @EnvironmentObject var set: AppSet
   @EnvironmentObject var folds: FoldStore
+  @EnvironmentObject var bus: NotifBus
 
   @State private var sp: SpchPlayer? = nil
   @State private var showPlayer = false
@@ -58,13 +59,18 @@ struct LibraryView: View {
         }
       }
       .onDrop(of: [.pdf], isTargeted: nil) { providers in
-        handleDrop(providers: providers)
-        return true
+        let hasPDF = providers.contains { $0.hasItemConformingToTypeIdentifier("com.adobe.pdf") }
+        if hasPDF { handleDrop(providers: providers) }
+        return hasPDF
       }
     }
     .sheet(isPresented: $showPlayer) {
       if let sp {
-        PlayerView(sp: sp).environmentObject(set)
+        PlayerView(sp: sp)
+          .environmentObject(set)
+          .environmentObject(bus)
+          .environmentObject(q)
+          .environmentObject(lib)
       } else {
         Text("No player loaded").padding()
       }
@@ -76,6 +82,7 @@ struct LibraryView: View {
           .environmentObject(folds)
           .environmentObject(q)
           .environmentObject(set)
+          .environmentObject(bus)
       }
     }
     .sheet(isPresented: $showFilePicker) {
@@ -158,7 +165,7 @@ struct LibraryView: View {
           }
           try FileManager.default.copyItem(at: url, to: tempURL)
           Task { @MainActor in
-            lib.addDocument(from: tempURL)
+            lib.addDocument(from: tempURL, cleanupURL: tempURL)
           }
         } catch {
           Task { @MainActor in

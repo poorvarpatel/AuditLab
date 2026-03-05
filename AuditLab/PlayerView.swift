@@ -13,7 +13,7 @@ struct PlayerView: View {
     @EnvironmentObject var set: AppSet
     @EnvironmentObject var q: QueueStore
     @EnvironmentObject var lib: LibStore
-    @ObservedObject var bus = NotifBus.shared
+    @EnvironmentObject var bus: NotifBus
     
     @State private var showAsk = false
     @State private var askIdx = 0
@@ -43,6 +43,7 @@ struct PlayerView: View {
             // Transcript (middle)
             TranscriptView(sp: sp)
               .environmentObject(set)
+              .environmentObject(bus)
               .layoutPriority(1)
               .padding(.horizontal, 14)
             
@@ -64,9 +65,7 @@ struct PlayerView: View {
         .alert("Skip to this sentence?", isPresented: $showAsk) {
             Button("Cancel", role: .cancel) { }
             Button("Skip", role: .destructive) {
-                let cur = sp.curSent
-                let d = Double(askIdx - cur)
-                sp.jumpSec(d >= 0 ? 10 : -10)
+                sp.jumpToSentence(askIdx)
             }
         } message: {
             Text("This will move playback to a new spot in the paper.")

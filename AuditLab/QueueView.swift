@@ -12,15 +12,12 @@ struct QueueView: View {
   @EnvironmentObject var lib: LibStore
   @EnvironmentObject var folds: FoldStore
   @EnvironmentObject var set: AppSet
+  @EnvironmentObject var bus: NotifBus
   
-  @StateObject private var sp: SpchPlayer
+  @State private var sp: SpchPlayer? = nil
   @State private var showPlayer = false
   @State private var selectedFolderConfig: FolderQueueConfig? = nil
   @State private var showFolderConfig = false
-  
-  init() {
-    _sp = StateObject(wrappedValue: SpchPlayer(set: AppSet()))
-  }
   
   var body: some View {
     NavigationStack {
@@ -71,14 +68,20 @@ struct QueueView: View {
         }
       }
       .sheet(isPresented: $showPlayer) {
-        PlayerView(sp: sp)
-          .environmentObject(set)
+        if let sp {
+          PlayerView(sp: sp)
+            .environmentObject(set)
+            .environmentObject(q)
+            .environmentObject(lib)
+            .environmentObject(bus)
+        }
       }
       .sheet(isPresented: $showFolderConfig) {
         if let config = selectedFolderConfig {
           FolderQueueConfigView(config: config, folderId: config.folderId)
             .environmentObject(lib)
             .environmentObject(folds)
+            .environmentObject(q)
         }
       }
     }
@@ -102,31 +105,33 @@ struct QueueView: View {
     .padding(.top, 60)
   }
   
+  private func getOrCreatePlayer() -> SpchPlayer {
+    if let sp { return sp }
+    let player = SpchPlayer(set: set)
+    sp = player
+    return player
+  }
+
   private func playQueueItem(_ item: QItem) {
-    // Check if this is a folder
+    let player = getOrCreatePlayer()
+
     if item.paperId.hasPrefix("folder:") {
       let folderId = String(item.paperId.dropFirst(7))
       let folderPapers = q.getFolderPapers(folderId)
-      
+
       if !folderPapers.isEmpty {
         q.startFolderPlayback(folderId, papers: folderPapers)
         if let firstPaper = folderPapers.first {
-          let pack = loadPack(paperId: firstPaper.paperId)
-          sp.load(pack, q: firstPaper)
+          guard let pack = lib.getPack(id: firstPaper.paperId) else { return }
+          player.load(pack, q: firstPaper)
           showPlayer = true
         }
       }
     } else {
-      // Regular paper
-      let pack = loadPack(paperId: item.paperId)
-      sp.load(pack, q: item)
+      guard let pack = lib.getPack(id: item.paperId) else { return }
+      player.load(pack, q: item)
       showPlayer = true
     }
-  }
-  
-  private func loadPack(paperId: String) -> ReadPack {
-    // Load by ID - for demo papers this works, later will load from storage
-    return DemoData.pack(id: paperId)
   }
 }
 

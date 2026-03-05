@@ -11,6 +11,7 @@ import Combine
 struct TranscriptView: View {
   @ObservedObject var sp: SpchPlayer
   @EnvironmentObject var set: AppSet
+  @EnvironmentObject var bus: NotifBus
 
   @State private var userScr: Bool = false
 
@@ -101,28 +102,22 @@ struct TranscriptView: View {
     }
 
   private func tapLine(_ idx: Int) {
-    guard set.skipAsk else {
+    guard set.confirmBeforeSkip else {
       // no confirm
       skipTo(idx)
       return
     }
     // confirm modal handled in PlayerView (via binding); we just post intent
-    NotifBus.shared.wantSkip = idx
+    bus.wantSkip = idx
   }
 
   private func skipTo(_ idx: Int) {
-    // We implement "skip" as jump by sentences (stop + seek to target)
-    let cur = sp.curSent
-    let d = Double(idx - cur)
-    // 1 sentence ~ (words/wps). We'll just jump by tokens directly:
-    sp.jumpSec(d >= 0 ? 0.1 : -0.1) // tiny nudge to re-align token
-    // then hard align token (direct method not exposed here in v1)
+    sp.jumpToSentence(idx)
   }
 }
 
-// Simple shared bus for skip intent (keeps identifiers short)
+// Bus for skip intent; injected from app root (keeps identifiers short).
 final class NotifBus: ObservableObject {
-  static let shared = NotifBus()
   @Published var wantSkip: Int? = nil
-  private init() {}
+  init() {}
 }

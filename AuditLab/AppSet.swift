@@ -9,8 +9,9 @@ import Foundation
 import Combine
 
 final class AppSet: ObservableObject {
-  @Published var skipAsk: Bool {
-    didSet { UserDefaults.standard.set(skipAsk, forKey: "skipAsk") }
+  /// When true, tapping a sentence in the transcript shows a confirmation dialog before skipping.
+  @Published var confirmBeforeSkip: Bool {
+    didSet { UserDefaults.standard.set(confirmBeforeSkip, forKey: "skipAsk") }
   }
 
   @Published var figBg: Bool {
@@ -22,7 +23,7 @@ final class AppSet: ObservableObject {
   }
 
   init() {
-    self.skipAsk = UserDefaults.standard.object(forKey: "skipAsk") as? Bool ?? true
+    self.confirmBeforeSkip = UserDefaults.standard.object(forKey: "skipAsk") as? Bool ?? true
     self.figBg = UserDefaults.standard.object(forKey: "figBg") as? Bool ?? true
     self.wps = UserDefaults.standard.object(forKey: "wps") as? Double ?? 2.8
   }

@@ -13,6 +13,7 @@ struct FolderDetailView: View {
   @EnvironmentObject var folds: FoldStore
   @EnvironmentObject var q: QueueStore
   @EnvironmentObject var set: AppSet
+  @EnvironmentObject var bus: NotifBus
   
   let folderId: String
   
@@ -110,7 +111,11 @@ struct FolderDetailView: View {
       }
       .sheet(isPresented: $showPlayer) {
         if let sp {
-          PlayerView(sp: sp).environmentObject(set)
+          PlayerView(sp: sp)
+            .environmentObject(set)
+            .environmentObject(bus)
+            .environmentObject(q)
+            .environmentObject(lib)
         }
       }
       .sheet(isPresented: $showFolderQueueConfig) {
@@ -156,13 +161,12 @@ struct FolderDetailView: View {
   private func play(_ rec: PaperRec) {
     if sp == nil { sp = SpchPlayer(set: set) }
     guard let sp else { return }
-    
-    let p = DemoData.pack(id: rec.id)
+    guard let p = lib.getPack(id: rec.id) else { return }
+
     let it = DemoData.qitem(for: p)
-    
     q.add(it)
     q.idx = max(0, q.items.count - 1)
-    
+
     sp.load(p, q: it)
     showPlayer = true
   }

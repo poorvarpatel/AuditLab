@@ -10,6 +10,7 @@ internal import SwiftUI
 struct PaperDetailView: View {
   @Environment(\.dismiss) private var dis
   @EnvironmentObject var q: QueueStore
+  @EnvironmentObject var lib: LibStore
 
   let rec: PaperRec
 
@@ -26,7 +27,7 @@ struct PaperDetailView: View {
         Spacer()
 
         Button("Add to Queue") {
-          let p = DemoData.pack() // temp: later we load by rec.id
+          guard let p = lib.getPack(id: rec.id) else { return }
           let it = DemoData.qitem(for: p)
           q.add(it)
           dis()
@@ -34,11 +35,10 @@ struct PaperDetailView: View {
         .buttonStyle(.borderedProminent)
 
         Button("Play Now") {
-          let p = DemoData.pack()
+          guard let p = lib.getPack(id: rec.id) else { return }
           let it = DemoData.qitem(for: p)
           q.add(it)
           q.idx = max(0, q.items.count - 1)
-          // Player opens from Queue tab for now
           dis()
         }
         .buttonStyle(.bordered)

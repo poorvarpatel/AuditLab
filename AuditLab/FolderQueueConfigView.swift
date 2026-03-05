@@ -130,18 +130,15 @@ struct FolderQueueConfigView: View {
   }
   
   private func addToQueue() {
-    // Sort papers to play unread first
     let unreadIds = unreadPapers.map { $0.id }.filter { selectedPaperIds.contains($0) }
     let readIds = readPapers.map { $0.id }.filter { selectedPaperIds.contains($0) }
     let orderedIds = unreadIds + readIds
-    
-    // Create QItems for selected papers
+
     let queueItems = orderedIds.compactMap { paperId -> QItem? in
-      let pack = DemoData.pack(id: paperId)
+      guard let pack = lib.getPack(id: paperId) else { return nil }
       return DemoData.qitem(for: pack)
     }
-    
-    // Add folder marker and papers to queue (they'll be stored in the map)
+
     q.addFolder(folderId, papers: queueItems)
   }
 }

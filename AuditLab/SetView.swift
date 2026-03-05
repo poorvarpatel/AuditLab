@@ -14,7 +14,7 @@ struct SetView: View {
     NavigationStack {
       Form {
         Section("Playback") {
-          Toggle("Confirm skip", isOn: $set.skipAsk)
+          Toggle("Confirm skip", isOn: $set.confirmBeforeSkip)
           HStack {
             Text("Words/sec est")
             Spacer()
