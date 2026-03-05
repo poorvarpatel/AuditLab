@@ -7,37 +7,121 @@
 
 import Foundation
 import Combine
+import CoreData
 
 @MainActor
 final class FoldStore: ObservableObject {
   @Published var folds: [FoldRec] = []
 
+  private let repository: DocumentRepositoryProtocol
+  private var contextObserver: AnyCancellable?
+
+  nonisolated deinit {}
+
+  init(repository: DocumentRepositoryProtocol) {
+    self.repository = repository
+    reloadFromContext()
+
+    contextObserver = NotificationCenter.default
+      .publisher(for: .NSManagedObjectContextObjectsDidChange, object: repository.viewContext)
+      .sink { [weak self] _ in self?.reloadFromContext() }
+  }
+
+  // MARK: - Reactive reload
+
+  func reloadFromContext() {
+    do {
+      let folderList = try repository.fetchFolders()
+      var result: [FoldRec] = []
+      for folder in folderList {
+        let docs = try repository.fetchDocumentsInFolder(folder)
+        let pids = docs.compactMap { $0.identity?.uuidString }
+        result.append(FoldRec(
+          id: folder.identity?.uuidString ?? UUID().uuidString,
+          name: folder.name ?? "",
+          pids: pids
+        ))
+      }
+      folds = result
+    } catch {
+      folds = []
+      #if DEBUG
+      print("[FoldStore] reloadFromContext failed: \(error)")
+      #endif
+    }
+  }
+
+  // MARK: - Mutations (fire-and-forget; UI updates via observer)
+
   func addNew(name: String = "New Folder") {
-    folds.insert(FoldRec(name: name), at: 0)
+    do {
+      try repository.addFolder(identity: UUID(), name: name, createdAt: Date())
+    } catch {
+      #if DEBUG
+      print("[FoldStore] addNew failed: \(error)")
+      #endif
+    }
   }
 
   func rename(_ id: String, to newName: String) {
-    guard let i = folds.firstIndex(where: { $0.id == id }) else { return }
-    folds[i].name = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard let folder = folder(byId: id) else { return }
+    let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+    do {
+      try repository.updateFolderName(folder, name: trimmed)
+    } catch {
+      #if DEBUG
+      print("[FoldStore] rename failed: \(error)")
+      #endif
+    }
   }
 
   func addPaper(_ pid: String, to foldId: String) {
-    guard let i = folds.firstIndex(where: { $0.id == foldId }) else { return }
-    if !folds[i].pids.contains(pid) { folds[i].pids.append(pid) }
+    guard let doc = document(byId: pid), let folder = folder(byId: foldId) else { return }
+    do {
+      try repository.addDocumentToFolder(document: doc, folder: folder)
+    } catch {
+      #if DEBUG
+      print("[FoldStore] addPaper failed: \(error)")
+      #endif
+    }
   }
-  
+
   func removePaper(_ pid: String, from foldId: String) {
-    guard let i = folds.firstIndex(where: { $0.id == foldId }) else { return }
-    folds[i].pids.removeAll { $0 == pid }
+    guard let doc = document(byId: pid), let folder = folder(byId: foldId) else { return }
+    do {
+      try repository.removeDocumentFromFolder(document: doc, folder: folder)
+    } catch {
+      #if DEBUG
+      print("[FoldStore] removePaper failed: \(error)")
+      #endif
+    }
   }
-  
+
   func deleteFolder(_ id: String) {
-    folds.removeAll { $0.id == id }
+    guard let folder = folder(byId: id) else { return }
+    do {
+      try repository.deleteFolder(folder)
+    } catch {
+      #if DEBUG
+      print("[FoldStore] deleteFolder failed: \(error)")
+      #endif
+    }
   }
-  
+
+  /// Reorders folds in the published array (UI order only; Core Data has no folder order).
   func moveFolder(from source: Int, to destination: Int) {
     guard source < folds.count, destination < folds.count else { return }
     let fold = folds.remove(at: source)
     folds.insert(fold, at: destination)
+  }
+
+  // MARK: - Private
+
+  private func folder(byId id: String) -> Folder? {
+    (try? repository.fetchFolders())?.first { $0.identity?.uuidString == id }
+  }
+
+  private func document(byId id: String) -> Document? {
+    (try? repository.fetchDocuments())?.first { $0.identity?.uuidString == id }
   }
 }

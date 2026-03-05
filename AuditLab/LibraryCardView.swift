@@ -30,18 +30,22 @@ struct LibraryCardView: View {
             } label: {
               Label("Add to Queue", systemImage: "text.badge.plus")
             }
+            .accessibilityIdentifier("library-document-add-to-queue-action")
             
             Button(role: .destructive) {
               onDelete()
             } label: {
               Label("Delete", systemImage: "trash")
             }
+            .accessibilityIdentifier("library-document-delete-action")
+            .accessibilityHint("Removes document from library and all folders")
           } label: {
             Image(systemName: "ellipsis.circle")
               .font(.system(size: 16, weight: .regular))
               .foregroundStyle(.secondary)
               .padding(6)
           }
+          .accessibilityLabel("Paper actions")
         }
 
         Text(rec.title)
@@ -49,6 +53,7 @@ struct LibraryCardView: View {
           .foregroundStyle(.primary)
           .lineLimit(2)
           .truncationMode(.tail)
+          .accessibilityIdentifier("library-document-card-title")
 
         Text(authLine())
           .font(.system(size: 16, weight: .medium))
@@ -76,6 +81,9 @@ struct LibraryCardView: View {
       RoundedRectangle(cornerRadius: 22)
         .stroke(Color.black.opacity(0.06), lineWidth: 1)
     )
+    .accessibilityElement(children: .combine)
+    .accessibilityIdentifier("library-document-card")
+    .accessibilityLabel(rec.title)
   }
 
   private func iconBox() -> some View {

@@ -6,11 +6,41 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		A1B2C3D62F38378A0034DECB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E4FC133A2F38378A0034DECB /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E4FC13412F38378A0034DECB;
+			remoteInfo = AuditLab;
+		};
+		A1B2C3E52F38378A0034DECB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E4FC133A2F38378A0034DECB /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E4FC13412F38378A0034DECB;
+			remoteInfo = AuditLab;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		10852E632F57571F00DE2DC6 /* AuditLabTests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; name = AuditLabTests.xctestplan; path = testplans/AuditLabTests.xctestplan; sourceTree = "<group>"; };
+		A1B2C3D42F38378A0034DECB /* AuditLabTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AuditLabTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B2C3E02F38378A0034DECB /* AuditLabUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AuditLabUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E4FC13422F38378A0034DECB /* AuditLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AuditLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		A1B2C3D52F38378A0034DECB /* AuditLabTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = AuditLabTests;
+			sourceTree = "<group>";
+		};
+		A1B2C3E12F38378A0034DECB /* AuditLabUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = AuditLabUITests;
+			sourceTree = "<group>";
+		};
 		E4FC13442F38378A0034DECB /* AuditLab */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = AuditLab;
@@ -19,6 +49,20 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		A1B2C3D72F38378A0034DECB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3E22F38378A0034DECB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E4FC133F2F38378A0034DECB /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -32,7 +76,10 @@
 		E4FC13392F38378A0034DECB = {
 			isa = PBXGroup;
 			children = (
+				10852E632F57571F00DE2DC6 /* AuditLabTests.xctestplan */,
 				E4FC13442F38378A0034DECB /* AuditLab */,
+				A1B2C3D52F38378A0034DECB /* AuditLabTests */,
+				A1B2C3E12F38378A0034DECB /* AuditLabUITests */,
 				E4FC13432F38378A0034DECB /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +88,8 @@
 			isa = PBXGroup;
 			children = (
 				E4FC13422F38378A0034DECB /* AuditLab.app */,
+				A1B2C3D42F38378A0034DECB /* AuditLabTests.xctest */,
+				A1B2C3E02F38378A0034DECB /* AuditLabUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -48,6 +97,52 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		A1B2C3D82F38378A0034DECB /* AuditLabTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B2C3D92F38378A0034DECB /* Build configuration list for PBXNativeTarget "AuditLabTests" */;
+			buildPhases = (
+				A1B2C3DA2F38378A0034DECB /* Sources */,
+				A1B2C3D72F38378A0034DECB /* Frameworks */,
+				A1B2C3DB2F38378A0034DECB /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1B2C3DC2F38378A0034DECB /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A1B2C3D52F38378A0034DECB /* AuditLabTests */,
+			);
+			name = AuditLabTests;
+			packageProductDependencies = (
+			);
+			productName = AuditLabTests;
+			productReference = A1B2C3D42F38378A0034DECB /* AuditLabTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		A1B2C3E72F38378A0034DECB /* AuditLabUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B2C3E82F38378A0034DECB /* Build configuration list for PBXNativeTarget "AuditLabUITests" */;
+			buildPhases = (
+				A1B2C3E32F38378A0034DECB /* Sources */,
+				A1B2C3E22F38378A0034DECB /* Frameworks */,
+				A1B2C3E42F38378A0034DECB /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1B2C3E62F38378A0034DECB /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A1B2C3E12F38378A0034DECB /* AuditLabUITests */,
+			);
+			name = AuditLabUITests;
+			packageProductDependencies = (
+			);
+			productName = AuditLabUITests;
+			productReference = A1B2C3E02F38378A0034DECB /* AuditLabUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		E4FC13412F38378A0034DECB /* AuditLab */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = E4FC134D2F38378B0034DECB /* Build configuration list for PBXNativeTarget "AuditLab" */;
@@ -80,6 +175,12 @@
 				LastSwiftUpdateCheck = 2610;
 				LastUpgradeCheck = 2610;
 				TargetAttributes = {
+					A1B2C3D82F38378A0034DECB = {
+						TestTargetID = E4FC13412F38378A0034DECB;
+					};
+					A1B2C3E72F38378A0034DECB = {
+						TestTargetID = E4FC13412F38378A0034DECB;
+					};
 					E4FC13412F38378A0034DECB = {
 						CreatedOnToolsVersion = 26.1.1;
 					};
@@ -100,11 +201,27 @@
 			projectRoot = "";
 			targets = (
 				E4FC13412F38378A0034DECB /* AuditLab */,
+				A1B2C3D82F38378A0034DECB /* AuditLabTests */,
+				A1B2C3E72F38378A0034DECB /* AuditLabUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		A1B2C3DB2F38378A0034DECB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3E42F38378A0034DECB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E4FC13402F38378A0034DECB /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -115,6 +232,20 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		A1B2C3DA2F38378A0034DECB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3E32F38378A0034DECB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E4FC133E2F38378A0034DECB /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -124,7 +255,92 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		A1B2C3DC2F38378A0034DECB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E4FC13412F38378A0034DECB /* AuditLab */;
+			targetProxy = A1B2C3D62F38378A0034DECB /* PBXContainerItemProxy */;
+		};
+		A1B2C3E62F38378A0034DECB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E4FC13412F38378A0034DECB /* AuditLab */;
+			targetProxy = A1B2C3E52F38378A0034DECB /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		A1B2C3DD2F38378A0034DECB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3L3LK8HZ46;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.poorvarpatel.AuditLabTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AuditLab.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AuditLab";
+			};
+			name = Debug;
+		};
+		A1B2C3DE2F38378A0034DECB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3L3LK8HZ46;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.poorvarpatel.AuditLabTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AuditLab.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AuditLab";
+			};
+			name = Release;
+		};
+		A1B2C3E92F38378A0034DECB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3L3LK8HZ46;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.poorvarpatel.AuditLabUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A1B2C3EA2F38378A0034DECB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3L3LK8HZ46;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.poorvarpatel.AuditLabUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		E4FC134B2F38378B0034DECB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -251,9 +467,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 3L3LK8HZ46;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -261,6 +477,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -268,6 +485,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.poorvarpatel.AuditLab;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -283,9 +501,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 3L3LK8HZ46;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -293,6 +511,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -300,6 +519,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.poorvarpatel.AuditLab;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -313,6 +533,24 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		A1B2C3D92F38378A0034DECB /* Build configuration list for PBXNativeTarget "AuditLabTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3DD2F38378A0034DECB /* Debug */,
+				A1B2C3DE2F38378A0034DECB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1B2C3E82F38378A0034DECB /* Build configuration list for PBXNativeTarget "AuditLabUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3E92F38378A0034DECB /* Debug */,
+				A1B2C3EA2F38378A0034DECB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		E4FC133D2F38378A0034DECB /* Build configuration list for PBXProject "AuditLab" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

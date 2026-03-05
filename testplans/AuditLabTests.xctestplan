@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "47F1AE1C-2CA0-4D16-8B45-97966B74EF5C",
+      "name" : "Test Scheme Action",
+      "options" : {
+        "maximumParallelTestRunnerCount" : 1
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "performanceAntipatternCheckerEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:AuditLab.xcodeproj",
+        "identifier" : "A1B2C3D82F38378A0034DECB",
+        "name" : "AuditLabTests"
+      }
+    }
+  ],
+  "version" : 1
+}

@@ -14,13 +14,15 @@ struct SetView: View {
     NavigationStack {
       Form {
         Section("Playback") {
-          Toggle("Confirm skip", isOn: $set.skipAsk)
+          Toggle("Confirm skip", isOn: $set.confirmBeforeSkip)
           HStack {
             Text("Words/sec est")
             Spacer()
             Text(String(format: "%.2f", set.wps)).monospacedDigit()
           }
           Slider(value: $set.wps, in: 1.5...4.0)
+            .accessibilityLabel("Words per second")
+            .accessibilityValue(String(format: "%.1f", set.wps))
         }
 
         Section("Figures") {

@@ -12,15 +12,12 @@ struct QueueView: View {
   @EnvironmentObject var lib: LibStore
   @EnvironmentObject var folds: FoldStore
   @EnvironmentObject var set: AppSet
+  @EnvironmentObject var bus: NotifBus
   
-  @StateObject private var sp: SpchPlayer
+  @State private var sp: SpchPlayer? = nil
   @State private var showPlayer = false
   @State private var selectedFolderConfig: FolderQueueConfig? = nil
   @State private var showFolderConfig = false
-  
-  init() {
-    _sp = StateObject(wrappedValue: SpchPlayer(set: AppSet()))
-  }
   
   var body: some View {
     NavigationStack {
@@ -33,20 +30,14 @@ struct QueueView: View {
               QueueItemRow(
                 item: item,
                 isCurrent: index == q.idx,
-                onTap: { },
-                onDelete: { q.rm(item) }
+                onTap: { }
               )
             }
             .onDelete { indexSet in
-              for i in indexSet {
-                q.items.remove(at: i)
-              }
-              if q.idx >= q.items.count {
-                q.idx = max(0, q.items.count - 1)
-              }
+              q.remove(atOffsets: indexSet)
             }
             .onMove { source, destination in
-              q.items.move(fromOffsets: source, toOffset: destination)
+              q.move(fromOffsets: source, toOffset: destination)
             }
           }
           .listStyle(.plain)
@@ -76,14 +67,20 @@ struct QueueView: View {
         }
       }
       .sheet(isPresented: $showPlayer) {
-        PlayerView(sp: sp)
-          .environmentObject(set)
+        if let sp {
+          PlayerView(sp: sp)
+            .environmentObject(set)
+            .environmentObject(q)
+            .environmentObject(lib)
+            .environmentObject(bus)
+        }
       }
       .sheet(isPresented: $showFolderConfig) {
         if let config = selectedFolderConfig {
           FolderQueueConfigView(config: config, folderId: config.folderId)
             .environmentObject(lib)
             .environmentObject(folds)
+            .environmentObject(q)
         }
       }
     }
@@ -94,6 +91,7 @@ struct QueueView: View {
       Image(systemName: "list.bullet")
         .font(.system(size: 60))
         .foregroundStyle(.secondary)
+        .accessibilityHidden(true)
       
       Text("Queue is empty")
         .font(.title3.weight(.semibold))
@@ -107,31 +105,33 @@ struct QueueView: View {
     .padding(.top, 60)
   }
   
+  private func getOrCreatePlayer() -> SpchPlayer {
+    if let sp { return sp }
+    let player = SpchPlayer(set: set)
+    sp = player
+    return player
+  }
+
   private func playQueueItem(_ item: QItem) {
-    // Check if this is a folder
+    let player = getOrCreatePlayer()
+
     if item.paperId.hasPrefix("folder:") {
       let folderId = String(item.paperId.dropFirst(7))
       let folderPapers = q.getFolderPapers(folderId)
-      
+
       if !folderPapers.isEmpty {
         q.startFolderPlayback(folderId, papers: folderPapers)
         if let firstPaper = folderPapers.first {
-          let pack = loadPack(paperId: firstPaper.paperId)
-          sp.load(pack, q: firstPaper)
+          guard let pack = lib.getPack(id: firstPaper.paperId) else { return }
+          player.load(pack, q: firstPaper)
           showPlayer = true
         }
       }
     } else {
-      // Regular paper
-      let pack = loadPack(paperId: item.paperId)
-      sp.load(pack, q: item)
+      guard let pack = lib.getPack(id: item.paperId) else { return }
+      player.load(pack, q: item)
       showPlayer = true
     }
-  }
-  
-  private func loadPack(paperId: String) -> ReadPack {
-    // Load by ID - for demo papers this works, later will load from storage
-    return DemoData.pack(id: paperId)
   }
 }
 
@@ -139,7 +139,6 @@ struct QueueItemRow: View {
   let item: QItem
   let isCurrent: Bool
   let onTap: () -> Void
-  let onDelete: () -> Void
   
   @EnvironmentObject var lib: LibStore
   @EnvironmentObject var folds: FoldStore
@@ -225,9 +224,12 @@ struct QueueItemRow: View {
       Image(systemName: "chevron.right")
         .rotationEffect(.degrees(isExpanded ? 90 : 0))
         .foregroundStyle(.secondary)
+        .accessibilityHidden(true)
     }
     .padding(.vertical, 4)
     .contentShape(Rectangle())
+    .accessibilityLabel(folder?.name ?? "Folder")
+    .accessibilityHint(isExpanded ? "Collapse" : "Expand")
     .onTapGesture {
       withAnimation {
         isExpanded.toggle()
@@ -293,14 +295,26 @@ struct QueueItemRow: View {
       
       // Paper info
       VStack(alignment: .leading, spacing: 4) {
-        Text(paper?.title ?? item.paperId)
-          .font(.system(size: 16, weight: isCurrent ? .semibold : .regular))
-          .lineLimit(2)
-        
-        if let p = paper, !p.auths.isEmpty {
-          Text(p.auths.joined(separator: ", "))
-            .font(.system(size: 14))
+        if let p = paper {
+          Text(p.title)
+            .font(.system(size: 16, weight: isCurrent ? .semibold : .regular))
+            .lineLimit(2)
+          
+          if !p.auths.isEmpty {
+            Text(p.auths.joined(separator: ", "))
+              .font(.system(size: 14))
+              .foregroundStyle(.secondary)
+              .lineLimit(1)
+          }
+        } else {
+          Text("Document not available")
+            .font(.system(size: 16, weight: isCurrent ? .semibold : .regular))
             .foregroundStyle(.secondary)
+            .lineLimit(2)
+          
+          Text("The document is no longer in your library")
+            .font(.system(size: 14))
+            .foregroundStyle(.tertiary)
             .lineLimit(1)
         }
       }

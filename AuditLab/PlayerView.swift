@@ -13,7 +13,7 @@ struct PlayerView: View {
     @EnvironmentObject var set: AppSet
     @EnvironmentObject var q: QueueStore
     @EnvironmentObject var lib: LibStore
-    @ObservedObject var bus = NotifBus.shared
+    @EnvironmentObject var bus: NotifBus
     
     @State private var showAsk = false
     @State private var askIdx = 0
@@ -43,6 +43,7 @@ struct PlayerView: View {
             // Transcript (middle)
             TranscriptView(sp: sp)
               .environmentObject(set)
+              .environmentObject(bus)
               .layoutPriority(1)
               .padding(.horizontal, 14)
             
@@ -64,9 +65,7 @@ struct PlayerView: View {
         .alert("Skip to this sentence?", isPresented: $showAsk) {
             Button("Cancel", role: .cancel) { }
             Button("Skip", role: .destructive) {
-                let cur = sp.curSent
-                let d = Double(askIdx - cur)
-                sp.jumpSec(d >= 0 ? 10 : -10)
+                sp.jumpToSentence(askIdx)
             }
         } message: {
             Text("This will move playback to a new spot in the paper.")
@@ -85,9 +84,7 @@ struct PlayerView: View {
     private func handlePaperCompletion(_ player: SpchPlayer) {
         // Mark current paper as read
         if let currentPaperId = player.pack?.id {
-            if let idx = lib.recs.firstIndex(where: { $0.id == currentPaperId }) {
-                lib.recs[idx].isRead = true
-            }
+            lib.markRead(id: currentPaperId)
         }
         
         // Advance queue and load next paper
@@ -144,6 +141,7 @@ struct PlayerView: View {
                         .padding(6)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(showCtrls ? "Hide controls" : "Show controls")
                 
                 Spacer()
                 
@@ -171,6 +169,7 @@ struct PlayerView: View {
         HStack(spacing: 18) {
             Button("⟲ 10s") { sp.jumpSec(-10) }
                 .buttonStyle(.bordered)
+                .accessibilityLabel("Rewind")
             
             Button(sp.st == .play ? "Pause" : "Play") {
                 sp.st == .play ? sp.pause() : sp.play()
@@ -179,6 +178,7 @@ struct PlayerView: View {
             
             Button("10s ⟳") { sp.jumpSec(10) }
                 .buttonStyle(.bordered)
+                .accessibilityLabel("Fast forward")
         }
     }
     
@@ -201,6 +201,8 @@ struct PlayerView: View {
                 ),
                 in: 0.25...3.5
             )
+            .accessibilityLabel("Playback speed")
+            .accessibilityValue(String(format: "%.2fx", sp.spd))
             
             ScrollViewReader { proxy in
                 ScrollView(.horizontal, showsIndicators: false) {
