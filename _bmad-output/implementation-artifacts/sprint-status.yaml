@@ -49,8 +49,8 @@ development_status:
 
   epic-2: in-progress
   2-1-add-pdf-to-library-via-document-picker: done
-  2-2-pdf-parse-failure-and-large-file-handling: backlog
-  2-3-view-library-as-list-or-grid: backlog
+  2-2-pdf-parse-failure-and-large-file-handling: done
+  2-3-view-library-as-list-or-grid: ready-for-dev
   2-4-view-document-detail: backlog
   2-5-remove-document-from-library-with-cascade: backlog
   2-6-empty-and-loading-states-for-library: backlog
