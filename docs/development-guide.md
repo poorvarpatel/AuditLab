@@ -28,8 +28,11 @@
 
 ## Testing
 
-- No test target or test file patterns found in app (`*.test.ts` etc. are for other project types).
-- Add tests via Xcode: File → New → Target → Unit Testing Bundle / UI Testing Bundle.
+- **Unit tests:** AuditLabTests target; run from Xcode (Cmd+U) or CLI.
+- **Reuse one simulator (saves memory):** The scheme runs tests on a single device (no parallel clones). To pin a specific simulator:
+  1. Run `xcrun simctl list devices available` and pick one (e.g. iPhone 16).
+  2. Set `SIMULATOR_ID` to its UUID and run: `SIMULATOR_ID=<uuid> ./scripts/test.sh`
+- **Script:** `./scripts/test.sh` runs tests with a single destination; optional: `./scripts/test.sh AuditLabTests/StoreWiringTests` for one test class.
 
 ## Common tasks
 

@@ -16,6 +16,7 @@ final class QueueStore: ObservableObject {
   @Published var idx: Int = 0
 
   private let repository: DocumentRepositoryProtocol
+  private var contextObserver: AnyCancellable?
 
   var items: [QItem] {
     entries.map { entryToQItem($0) }
@@ -27,44 +28,47 @@ final class QueueStore: ObservableObject {
   @Published var folderIdx: Int = 0
   private var folderPapersMap: [String: [QItem]] = [:]
 
+  nonisolated deinit {}
+
   init(repository: DocumentRepositoryProtocol) {
     self.repository = repository
-    loadEntries()
+    reloadFromContext()
+
+    contextObserver = NotificationCenter.default
+      .publisher(for: .NSManagedObjectContextObjectsDidChange, object: repository.viewContext)
+      .sink { [weak self] _ in self?.reloadFromContext() }
   }
 
-  private func loadEntries() {
+  // MARK: - Reactive reload
+
+  func reloadFromContext() {
     do {
       entries = try repository.fetchQueueEntries()
+      if idx >= items.count { idx = max(0, items.count - 1) }
     } catch {
       entries = []
+      idx = 0
       #if DEBUG
-      print("[QueueStore] loadEntries failed: \(error)")
+      print("[QueueStore] reloadFromContext failed: \(error)")
       #endif
     }
   }
 
-  private func entryToQItem(_ entry: QueueEntry) -> QItem {
-    QItem(
-      paperId: entry.paperId ?? "",
-      secOn: DocumentRepository.decodeSecOn(entry.secOn),
-      incApp: entry.incApp ?? true,
-      incSum: entry.incSum ?? true
-    )
-  }
+  // MARK: - Mutations (fire-and-forget; UI updates via observer)
 
   func add(_ it: QItem) {
     guard !items.contains(it) else { return }
+    let nextIndex = Int32((try? repository.fetchQueueEntries().count) ?? 0)
     do {
       try repository.addQueueEntry(
         identity: UUID(),
         paperId: it.paperId,
-        orderIndex: Int32(entries.count),
+        orderIndex: nextIndex,
         secOn: it.secOn,
         incApp: it.incApp,
         incSum: it.incSum,
         document: nil
       )
-      loadEntries()
     } catch {
       #if DEBUG
       print("[QueueStore] add failed: \(error)")
@@ -74,18 +78,18 @@ final class QueueStore: ObservableObject {
 
   func addFolder(_ folderId: String, papers: [QItem]) {
     folderPapersMap[folderId] = papers
+    let nextIndex = Int32((try? repository.fetchQueueEntries().count) ?? 0)
     let marker = QItem(paperId: "folder:\(folderId)", secOn: [], incApp: false, incSum: false)
     do {
       try repository.addQueueEntry(
         identity: UUID(),
         paperId: marker.paperId,
-        orderIndex: Int32(entries.count),
+        orderIndex: nextIndex,
         secOn: marker.secOn,
         incApp: marker.incApp,
         incSum: marker.incSum,
         document: nil
       )
-      loadEntries()
     } catch {
       #if DEBUG
       print("[QueueStore] addFolder failed: \(error)")
@@ -106,8 +110,6 @@ final class QueueStore: ObservableObject {
     let entry = entries[i]
     do {
       try repository.deleteQueueEntry(entry)
-      loadEntries()
-      if idx >= items.count { idx = max(0, items.count - 1) }
     } catch {
       #if DEBUG
       print("[QueueStore] rm failed: \(error)")
@@ -116,19 +118,18 @@ final class QueueStore: ObservableObject {
   }
 
   func remove(atOffsets offsets: IndexSet) {
+    let ctx = repository.viewContext
     var toRemove: [QueueEntry] = []
     for i in offsets where i < entries.count {
       toRemove.append(entries[i])
     }
+    
     do {
       for entry in toRemove {
-        try repository.deleteQueueEntry(entry)
+        ctx.delete(entry)
       }
-      loadEntries()
-      if idx >= items.count { idx = max(0, items.count - 1) }
+      try ctx.save()
     } catch {
-      loadEntries()
-      if idx >= items.count { idx = max(0, items.count - 1) }
       #if DEBUG
       print("[QueueStore] remove(atOffsets:) failed: \(error)")
       #endif
@@ -140,7 +141,6 @@ final class QueueStore: ObservableObject {
     reordered.move(fromOffsets: source, toOffset: destination)
     do {
       try repository.updateQueueOrder(entries: reordered)
-      loadEntries()
     } catch {
       #if DEBUG
       print("[QueueStore] move failed: \(error)")
@@ -155,8 +155,6 @@ final class QueueStore: ObservableObject {
   func clr() {
     do {
       try repository.deleteAllQueueEntries()
-      loadEntries()
-      idx = 0
       activeFolderId = nil
       folderPapers = []
       folderPapersMap = [:]
@@ -167,6 +165,8 @@ final class QueueStore: ObservableObject {
       #endif
     }
   }
+
+  // MARK: - Playback navigation
 
   func cur() -> QItem? {
     if activeFolderId != nil {
@@ -225,5 +225,16 @@ final class QueueStore: ObservableObject {
     activeFolderId = nil
     folderPapers = []
     folderIdx = 0
+  }
+
+  // MARK: - Private
+
+  private func entryToQItem(_ entry: QueueEntry) -> QItem {
+    QItem(
+      paperId: entry.paperId ?? "",
+      secOn: DocumentRepository.decodeSecOn(entry.secOn),
+      incApp: entry.incApp ?? true,
+      incSum: entry.incSum ?? true
+    )
   }
 }

@@ -14,13 +14,22 @@ final class FoldStore: ObservableObject {
   @Published var folds: [FoldRec] = []
 
   private let repository: DocumentRepositoryProtocol
+  private var contextObserver: AnyCancellable?
+
+  nonisolated deinit {}
 
   init(repository: DocumentRepositoryProtocol) {
     self.repository = repository
-    loadFolds()
+    reloadFromContext()
+
+    contextObserver = NotificationCenter.default
+      .publisher(for: .NSManagedObjectContextObjectsDidChange, object: repository.viewContext)
+      .sink { [weak self] _ in self?.reloadFromContext() }
   }
 
-  private func loadFolds() {
+  // MARK: - Reactive reload
+
+  func reloadFromContext() {
     do {
       let folderList = try repository.fetchFolders()
       var result: [FoldRec] = []
@@ -37,24 +46,16 @@ final class FoldStore: ObservableObject {
     } catch {
       folds = []
       #if DEBUG
-      print("[FoldStore] loadFolds failed: \(error)")
+      print("[FoldStore] reloadFromContext failed: \(error)")
       #endif
     }
   }
 
-  private func folder(byId id: String) -> Folder? {
-    (try? repository.fetchFolders())?.first { $0.identity?.uuidString == id }
-  }
-
-  private func document(byId id: String) -> Document? {
-    (try? repository.fetchDocuments())?.first { $0.identity?.uuidString == id }
-  }
+  // MARK: - Mutations (fire-and-forget; UI updates via observer)
 
   func addNew(name: String = "New Folder") {
-    let identity = UUID()
     do {
-      try repository.addFolder(identity: identity, name: name, createdAt: Date())
-      loadFolds()
+      try repository.addFolder(identity: UUID(), name: name, createdAt: Date())
     } catch {
       #if DEBUG
       print("[FoldStore] addNew failed: \(error)")
@@ -67,7 +68,6 @@ final class FoldStore: ObservableObject {
     let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
     do {
       try repository.updateFolderName(folder, name: trimmed)
-      loadFolds()
     } catch {
       #if DEBUG
       print("[FoldStore] rename failed: \(error)")
@@ -79,7 +79,6 @@ final class FoldStore: ObservableObject {
     guard let doc = document(byId: pid), let folder = folder(byId: foldId) else { return }
     do {
       try repository.addDocumentToFolder(document: doc, folder: folder)
-      loadFolds()
     } catch {
       #if DEBUG
       print("[FoldStore] addPaper failed: \(error)")
@@ -91,7 +90,6 @@ final class FoldStore: ObservableObject {
     guard let doc = document(byId: pid), let folder = folder(byId: foldId) else { return }
     do {
       try repository.removeDocumentFromFolder(document: doc, folder: folder)
-      loadFolds()
     } catch {
       #if DEBUG
       print("[FoldStore] removePaper failed: \(error)")
@@ -103,7 +101,6 @@ final class FoldStore: ObservableObject {
     guard let folder = folder(byId: id) else { return }
     do {
       try repository.deleteFolder(folder)
-      loadFolds()
     } catch {
       #if DEBUG
       print("[FoldStore] deleteFolder failed: \(error)")
@@ -116,5 +113,15 @@ final class FoldStore: ObservableObject {
     guard source < folds.count, destination < folds.count else { return }
     let fold = folds.remove(at: source)
     folds.insert(fold, at: destination)
+  }
+
+  // MARK: - Private
+
+  private func folder(byId id: String) -> Folder? {
+    (try? repository.fetchFolders())?.first { $0.identity?.uuidString == id }
+  }
+
+  private func document(byId id: String) -> Document? {
+    (try? repository.fetchDocuments())?.first { $0.identity?.uuidString == id }
   }
 }

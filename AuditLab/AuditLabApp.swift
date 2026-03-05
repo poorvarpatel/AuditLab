@@ -9,18 +9,19 @@ internal import SwiftUI
 
 @main
 struct AuditLabApp: App {
-  private let persistenceController = PersistenceController.shared
-
   @StateObject private var lib: LibStore
   @StateObject private var q: QueueStore
   @StateObject private var set = AppSet()
   @StateObject private var folds: FoldStore
+  @StateObject private var bus: NotifBus
 
   init() {
-    let repo = DocumentRepository(persistenceController: persistenceController)
-    _lib = StateObject(wrappedValue: LibStore(repository: repo))
-    _q = StateObject(wrappedValue: QueueStore(repository: repo))
-    _folds = StateObject(wrappedValue: FoldStore(repository: repo))
+    let controller = PersistenceController()
+    let repository = DocumentRepository(persistenceController: controller)
+    _lib = StateObject(wrappedValue: LibStore(repository: repository))
+    _q = StateObject(wrappedValue: QueueStore(repository: repository))
+    _folds = StateObject(wrappedValue: FoldStore(repository: repository))
+    _bus = StateObject(wrappedValue: NotifBus())
   }
 
   var body: some Scene {
@@ -30,6 +31,7 @@ struct AuditLabApp: App {
         .environmentObject(q)
         .environmentObject(set)
         .environmentObject(folds)
+        .environmentObject(bus)
     }
   }
 }

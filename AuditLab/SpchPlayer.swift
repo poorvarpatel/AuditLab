@@ -104,6 +104,45 @@ final class SpchPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
     spd = min(3.5, max(0.25, v))
   }
 
+  func jumpToSentence(_ sentIdx: Int) {
+    guard let p = pack else { return }
+    guard !isJumping else { return }
+    guard sentIdx >= 0 && sentIdx < p.sents.count else { return }
+
+    isJumping = true
+    isPaused = false
+    syn.stopSpeaking(at: .immediate)
+
+    var sentenceTokens: [(tokIdx: Int, sentIdx: Int)] = []
+    for (i, tok) in seq.enumerated() {
+      if case .sent(let si) = tok {
+        sentenceTokens.append((i, si))
+      }
+    }
+
+    guard let target = sentenceTokens.first(where: { $0.sentIdx == sentIdx }) else {
+      isJumping = false
+      return
+    }
+
+    tokIx = target.tokIdx
+    curSent = sentIdx
+    setWin()
+    headTxt = nil
+    justJumped = true
+
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+      guard let self else { return }
+      self.isJumping = false
+      if self.st == .play {
+        self.step()
+      }
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        self.justJumped = false
+      }
+    }
+  }
+
   // Jump forward or backward by N sentences
   func jumpSec(_ sec: Double) {
     guard let p = pack else { return }

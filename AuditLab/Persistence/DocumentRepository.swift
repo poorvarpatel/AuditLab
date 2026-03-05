@@ -14,6 +14,8 @@ enum DocumentRepositoryError: Error {
 }
 
 protocol DocumentRepositoryProtocol {
+    var viewContext: NSManagedObjectContext { get }
+
     func addDocument(identity: UUID, title: String, addedAt: Date, fileReference: Data?) throws
     func fetchDocuments() throws -> [Document]
     func deleteDocument(_ document: Document) throws
@@ -45,11 +47,11 @@ final class DocumentRepository: DocumentRepositoryProtocol {
 
     private let persistenceController: PersistenceController
 
-    init(persistenceController: PersistenceController = .shared) {
+    init(persistenceController: PersistenceController) {
         self.persistenceController = persistenceController
     }
 
-    private var viewContext: NSManagedObjectContext {
+    var viewContext: NSManagedObjectContext {
         persistenceController.viewContext
     }
 

@@ -44,6 +44,10 @@ final class PDFParser {
   
   // MARK: - Main Parse Function
   
+  /// Parses a PDF from the given URL. Call from a background context only (e.g. Task.detached); not main-actor isolated (NFR-P1, FR48).
+  /// - Corrupted, password-protected, or unsupported PDFs: `PDFDocument(url:)` returns nil → throws `invalidPDF`.
+  /// - Large PDFs (e.g. 400+ pages): Processes one page at a time in the loop below to avoid loading the entire
+  ///   document into memory at once; PDFKit may stream pages. Keeps UI responsive and bounds memory (FR47, NFR-P2, NFR-P4).
   static func parse(url: URL) async throws -> ReadPack {
     guard let document = PDFDocument(url: url) else {
       throw PDFParserError.invalidPDF
@@ -54,7 +58,9 @@ final class PDFParser {
       throw PDFParserError.invalidPDF
     }
     
-    // Step 1: Extract raw text runs with font metadata
+    // Step 1: Extract raw text runs with font metadata (page-by-page to limit memory for large PDFs).
+    // Note: runs (and later paragraphs) accumulate in memory; for extreme 400+ page docs memory use grows.
+    // Acceptable for typical large PDFs; if needed, consider streaming/chunking (NFR-P4).
     var runs: [TextRun] = []
     for pageIndex in 0..<pageCount {
       guard let page = document.page(at: pageIndex) else { continue }

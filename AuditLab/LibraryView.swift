@@ -13,12 +13,14 @@ struct LibraryView: View {
   @EnvironmentObject var q: QueueStore
   @EnvironmentObject var set: AppSet
   @EnvironmentObject var folds: FoldStore
+  @EnvironmentObject var bus: NotifBus
 
   @State private var sp: SpchPlayer? = nil
   @State private var showPlayer = false
   @State private var selectedFolderId: String? = nil
   @State private var showFolderDetail = false
   @State private var showFilePicker = false
+  @State private var selectedRec: PaperRec? = nil
 
   var body: some View {
     ZStack {
@@ -40,31 +42,44 @@ struct LibraryView: View {
             .padding(.horizontal, 18)
           }
 
-          // Papers section
-          LazyVGrid(columns: cols(), spacing: 18) {
-            ForEach(lib.recs) { r in
-              LibraryCardView(
-                rec: r,
-                status: .ready,
-                onPlay: { play(r) },
-                onAddToQueue: { addToQueue(r) },
-                onDelete: { delete(r) }
-              )
-              .frame(minHeight: 220)
+          // Papers section — list/grid with documents, or empty state (AC1, AC2)
+          if lib.recs.isEmpty {
+            libraryEmptyState
+          } else {
+            LazyVGrid(columns: cols(), spacing: 18) {
+              ForEach(lib.recs) { r in
+                LibraryCardView(
+                  rec: r,
+                  status: .ready,
+                  onPlay: { play(r) },
+                  onAddToQueue: { addToQueue(r) },
+                  onDelete: { delete(r) }
+                )
+                .frame(minHeight: 220)
+                .contentShape(Rectangle())
+                .onTapGesture { selectedRec = r }
+              }
             }
+            .padding(.horizontal, 18)
+            .padding(.bottom, 24)
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("library-document-list")
           }
-          .padding(.horizontal, 18)
-          .padding(.bottom, 24)
         }
       }
       .onDrop(of: [.pdf], isTargeted: nil) { providers in
-        handleDrop(providers: providers)
-        return true
+        let hasPDF = providers.contains { $0.hasItemConformingToTypeIdentifier("com.adobe.pdf") }
+        if hasPDF { handleDrop(providers: providers) }
+        return hasPDF
       }
     }
     .sheet(isPresented: $showPlayer) {
       if let sp {
-        PlayerView(sp: sp).environmentObject(set)
+        PlayerView(sp: sp)
+          .environmentObject(set)
+          .environmentObject(bus)
+          .environmentObject(q)
+          .environmentObject(lib)
       } else {
         Text("No player loaded").padding()
       }
@@ -76,6 +91,7 @@ struct LibraryView: View {
           .environmentObject(folds)
           .environmentObject(q)
           .environmentObject(set)
+          .environmentObject(bus)
       }
     }
     .sheet(isPresented: $showFilePicker) {
@@ -83,6 +99,11 @@ struct LibraryView: View {
         showFilePicker = false
         lib.addDocument(from: url)
       }
+    }
+    .sheet(item: $selectedRec) { rec in
+      PaperDetailView(rec: rec)
+        .environmentObject(lib)
+        .environmentObject(q)
     }
     .overlay {
       if lib.isAddingDocument {
@@ -101,6 +122,7 @@ struct LibraryView: View {
           .cornerRadius(16)
           .accessibilityElement(children: .combine)
           .accessibilityLabel("Parsing PDF")
+          .accessibilityIdentifier("library-add-pdf-loading")
         }
       }
     }
@@ -118,12 +140,43 @@ struct LibraryView: View {
     [GridItem(.adaptive(minimum: 320), spacing: 18)]
   }
 
+  /// Empty state when library has no documents (NFR-U1): semantic background + message + Add PDF action.
+  private var libraryEmptyState: some View {
+    VStack(spacing: 20) {
+      Image(systemName: "doc.text.magnifyingglass")
+        .font(.system(size: 48))
+        .foregroundStyle(.secondary)
+      Text("No documents yet")
+        .font(.title2)
+        .fontWeight(.semibold)
+      Text("Add a PDF to get started.")
+        .font(.body)
+        .foregroundStyle(.secondary)
+        .multilineTextAlignment(.center)
+      Button {
+        showFilePicker = true
+      } label: {
+        Label("Add PDF", systemImage: "doc.badge.plus")
+      }
+      .buttonStyle(.borderedProminent)
+      .accessibilityIdentifier("library-empty-state-add-pdf")
+    }
+    .frame(maxWidth: .infinity)
+    .padding(32)
+    .background(Color(.secondarySystemGroupedBackground))
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel("No documents yet. Add a PDF to get started.")
+    .accessibilityIdentifier("library-empty-state")
+    .padding(.horizontal, 18)
+    .padding(.bottom, 24)
+  }
+
   private func play(_ r: PaperRec) {
     if sp == nil { sp = SpchPlayer(set: set) }
     guard let sp else { return }
 
     guard let p = lib.getPack(id: r.id) else { return }
-    let it = DemoData.qitem(for: p)
+    let it = p.defaultQItem()
 
     q.add(it)
     q.idx = max(0, q.items.count - 1)
@@ -138,8 +191,7 @@ struct LibraryView: View {
   
   private func addToQueue(_ r: PaperRec) {
     guard let p = lib.getPack(id: r.id) else { return }
-    let it = DemoData.qitem(for: p)
-    q.add(it)
+    q.add(p.defaultQItem())
   }
   
   private func handleDrop(providers: [NSItemProvider]) {
@@ -158,7 +210,7 @@ struct LibraryView: View {
           }
           try FileManager.default.copyItem(at: url, to: tempURL)
           Task { @MainActor in
-            lib.addDocument(from: tempURL)
+            lib.addDocument(from: tempURL, cleanupURL: tempURL)
           }
         } catch {
           Task { @MainActor in
@@ -166,12 +218,6 @@ struct LibraryView: View {
           }
         }
       }
-    }
-  }
-
-  private func addDemo() {
-    for (pack, rec) in DemoData.allDemoPapers() {
-      lib.add(rec, documentIdentity: UUID(), pack: pack)
     }
   }
 }

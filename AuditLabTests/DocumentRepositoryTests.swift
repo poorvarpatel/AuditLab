@@ -19,7 +19,6 @@ final class DocumentRepositoryTests: XCTestCase {
     }
 
     override func tearDown() {
-        controller.viewContext.reset()
         repo = nil
         controller = nil
         super.tearDown()
