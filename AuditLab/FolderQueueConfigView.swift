@@ -104,6 +104,9 @@ struct FolderQueueConfigView: View {
                 selectedPaperIds.insert(paper.id)
               }
             }
+            .accessibilityLabel(paper.title)
+            .accessibilityValue(selectedPaperIds.contains(paper.id) ? "Selected" : "Not selected")
+            .accessibilityHint("Tap to toggle selection")
           }
         }
       }
@@ -136,7 +139,7 @@ struct FolderQueueConfigView: View {
 
     let queueItems = orderedIds.compactMap { paperId -> QItem? in
       guard let pack = lib.getPack(id: paperId) else { return nil }
-      return DemoData.qitem(for: pack)
+      return pack.defaultQItem()
     }
 
     q.addFolder(folderId, papers: queueItems)

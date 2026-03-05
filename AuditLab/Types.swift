@@ -91,6 +91,13 @@ struct QItem: Codable, Identifiable, Equatable {
   var incSum: Bool
 }
 
+extension ReadPack {
+  func defaultQItem() -> QItem {
+    let on = Set(secs.filter { $0.defOn && $0.kind != "bib" }.map(\.id))
+    return QItem(paperId: id, secOn: on, incApp: false, incSum: false)
+  }
+}
+
 // Simple library record
 struct PaperRec: Codable, Identifiable, Equatable {
   var id: String

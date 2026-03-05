@@ -92,6 +92,7 @@ struct QueueView: View {
       Image(systemName: "list.bullet")
         .font(.system(size: 60))
         .foregroundStyle(.secondary)
+        .accessibilityHidden(true)
       
       Text("Queue is empty")
         .font(.title3.weight(.semibold))
@@ -225,9 +226,12 @@ struct QueueItemRow: View {
       Image(systemName: "chevron.right")
         .rotationEffect(.degrees(isExpanded ? 90 : 0))
         .foregroundStyle(.secondary)
+        .accessibilityHidden(true)
     }
     .padding(.vertical, 4)
     .contentShape(Rectangle())
+    .accessibilityLabel(folder?.name ?? "Folder")
+    .accessibilityHint(isExpanded ? "Collapse" : "Expand")
     .onTapGesture {
       withAnimation {
         isExpanded.toggle()

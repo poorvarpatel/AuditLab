@@ -127,7 +127,7 @@ final class LibStore: ObservableObject {
       packs[id] = loaded
       return loaded
     }
-    return DemoData.pack(id: id)
+    return nil
   }
 
   func document(byId id: String) -> Document? {

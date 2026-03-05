@@ -85,6 +85,7 @@ struct FolderDetailView: View {
           } label: {
             Image(systemName: "ellipsis.circle")
           }
+          .accessibilityLabel("Folder actions")
         }
         
         ToolbarItem(placement: .topBarLeading) {
@@ -145,6 +146,7 @@ struct FolderDetailView: View {
       Image(systemName: "folder")
         .font(.system(size: 60))
         .foregroundStyle(.secondary)
+        .accessibilityHidden(true)
       
       Text("No papers in this folder")
         .font(.title3.weight(.semibold))
@@ -163,7 +165,7 @@ struct FolderDetailView: View {
     guard let sp else { return }
     guard let p = lib.getPack(id: rec.id) else { return }
 
-    let it = DemoData.qitem(for: p)
+    let it = p.defaultQItem()
     q.add(it)
     q.idx = max(0, q.items.count - 1)
 
@@ -236,6 +238,7 @@ struct PaperRowView: View {
           .font(.system(size: 20))
           .foregroundStyle(.secondary)
       }
+      .accessibilityLabel("Paper actions")
     }
     .padding()
     .background(Color(.secondarySystemBackground))

@@ -141,6 +141,7 @@ struct PlayerView: View {
                         .padding(6)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(showCtrls ? "Hide controls" : "Show controls")
                 
                 Spacer()
                 
@@ -168,6 +169,7 @@ struct PlayerView: View {
         HStack(spacing: 18) {
             Button("⟲ 10s") { sp.jumpSec(-10) }
                 .buttonStyle(.bordered)
+                .accessibilityLabel("Rewind")
             
             Button(sp.st == .play ? "Pause" : "Play") {
                 sp.st == .play ? sp.pause() : sp.play()
@@ -176,6 +178,7 @@ struct PlayerView: View {
             
             Button("10s ⟳") { sp.jumpSec(10) }
                 .buttonStyle(.bordered)
+                .accessibilityLabel("Fast forward")
         }
     }
     
@@ -198,6 +201,8 @@ struct PlayerView: View {
                 ),
                 in: 0.25...3.5
             )
+            .accessibilityLabel("Playback speed")
+            .accessibilityValue(String(format: "%.2fx", sp.spd))
             
             ScrollViewReader { proxy in
                 ScrollView(.horizontal, showsIndicators: false) {

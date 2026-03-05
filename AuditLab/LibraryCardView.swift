@@ -42,6 +42,7 @@ struct LibraryCardView: View {
               .foregroundStyle(.secondary)
               .padding(6)
           }
+          .accessibilityLabel("Paper actions")
         }
 
         Text(rec.title)

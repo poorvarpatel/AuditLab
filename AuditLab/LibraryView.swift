@@ -130,7 +130,7 @@ struct LibraryView: View {
     guard let sp else { return }
 
     guard let p = lib.getPack(id: r.id) else { return }
-    let it = DemoData.qitem(for: p)
+    let it = p.defaultQItem()
 
     q.add(it)
     q.idx = max(0, q.items.count - 1)
@@ -145,8 +145,7 @@ struct LibraryView: View {
   
   private func addToQueue(_ r: PaperRec) {
     guard let p = lib.getPack(id: r.id) else { return }
-    let it = DemoData.qitem(for: p)
-    q.add(it)
+    q.add(p.defaultQItem())
   }
   
   private func handleDrop(providers: [NSItemProvider]) {
@@ -173,12 +172,6 @@ struct LibraryView: View {
           }
         }
       }
-    }
-  }
-
-  private func addDemo() {
-    for (pack, rec) in DemoData.allDemoPapers() {
-      lib.add(rec, documentIdentity: UUID(), pack: pack)
     }
   }
 }

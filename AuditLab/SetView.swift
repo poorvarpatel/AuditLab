@@ -21,6 +21,8 @@ struct SetView: View {
             Text(String(format: "%.2f", set.wps)).monospacedDigit()
           }
           Slider(value: $set.wps, in: 1.5...4.0)
+            .accessibilityLabel("Words per second")
+            .accessibilityValue(String(format: "%.1f", set.wps))
         }
 
         Section("Figures") {

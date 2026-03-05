@@ -40,6 +40,8 @@ struct TranscriptView: View {
                 .onTapGesture {
                   if !row.isCur { tapLine(row.idx) }
                 }
+                .accessibilityLabel(row.text)
+                .accessibilityHint(row.isCur ? "Currently playing" : "Tap to skip here")
             }
           }
           .padding(.horizontal, 14)

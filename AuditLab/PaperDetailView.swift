@@ -28,15 +28,14 @@ struct PaperDetailView: View {
 
         Button("Add to Queue") {
           guard let p = lib.getPack(id: rec.id) else { return }
-          let it = DemoData.qitem(for: p)
-          q.add(it)
+          q.add(p.defaultQItem())
           dis()
         }
         .buttonStyle(.borderedProminent)
 
         Button("Play Now") {
           guard let p = lib.getPack(id: rec.id) else { return }
-          let it = DemoData.qitem(for: p)
+          let it = p.defaultQItem()
           q.add(it)
           q.idx = max(0, q.items.count - 1)
           dis()
