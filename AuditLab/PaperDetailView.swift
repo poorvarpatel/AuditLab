@@ -16,47 +16,142 @@ struct PaperDetailView: View {
 
   var body: some View {
     NavigationStack {
-      VStack(alignment: .leading, spacing: 14) {
-        Text(rec.title)
-          .font(.title3.weight(.semibold))
-          .lineLimit(2)
+      Group {
+        if lib.loadingPackId == rec.id {
+          loadingView
+        } else if let pack = lib.getPack(id: rec.id) {
+          detailContent(pack: pack)
+        } else {
+          unableToLoadView
+        }
+      }
+      .padding(16)
+      .navigationTitle(rec.title)
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbar {
+        ToolbarItem(placement: .topBarTrailing) {
+          Button("Done") { dis() }
+            .accessibilityIdentifier("document-detail-done")
+        }
+      }
+      .onAppear { lib.ensurePackLoaded(id: rec.id) }
+    }
+  }
 
-        Text(sub())
-          .foregroundStyle(.secondary)
+  private var loadingView: some View {
+    VStack(spacing: 16) {
+      ProgressView()
+        .scaleEffect(1.2)
+      Text("Loading document…")
+        .font(.subheadline)
+        .foregroundStyle(.secondary)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel("Loading document")
+    .accessibilityIdentifier("document-detail-loading")
+  }
 
-        Spacer()
+  private func detailContent(pack: ReadPack) -> some View {
+    let meta = pack.meta
+    return ScrollView {
+      VStack(alignment: .leading, spacing: 18) {
+        // Metadata (AC1): title, authors, date
+        VStack(alignment: .leading, spacing: 8) {
+          Text(meta.title.isEmpty ? rec.title : meta.title)
+            .font(.title3.weight(.semibold))
+            .lineLimit(3)
+            .accessibilityIdentifier("document-detail-title")
+          Text(metadataSubtitle(meta))
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .accessibilityIdentifier("document-detail-metadata")
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("document-detail-metadata-section")
+
+        // Section structure (AC1): section titles and optionally kind
+        if !pack.secs.isEmpty {
+          VStack(alignment: .leading, spacing: 8) {
+            Text("Sections")
+              .font(.headline)
+              .accessibilityIdentifier("document-detail-sections-header")
+            VStack(spacing: 0) {
+              ForEach(pack.secs) { sec in
+                HStack {
+                  Text(sec.title)
+                    .lineLimit(1)
+                    .accessibilityIdentifier("document-detail-section-title")
+                  Spacer()
+                  Text(sec.kind)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("document-detail-section-kind")
+                }
+                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(sec.title), \(sec.kind)")
+                if sec.id != pack.secs.last?.id {
+                  Divider()
+                }
+              }
+            }
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .accessibilityIdentifier("document-detail-sections-list")
+          }
+          .accessibilityElement(children: .contain)
+          .accessibilityIdentifier("document-detail-sections-section")
+        }
+
+        Spacer(minLength: 20)
 
         Button("Add to Queue") {
-          guard let p = lib.getPack(id: rec.id) else { return }
-          q.add(p.defaultQItem())
+          q.add(pack.defaultQItem())
           dis()
         }
         .buttonStyle(.borderedProminent)
+        .accessibilityIdentifier("document-detail-add-to-queue")
 
         Button("Play Now") {
-          guard let p = lib.getPack(id: rec.id) else { return }
-          let it = p.defaultQItem()
+          let it = pack.defaultQItem()
           q.add(it)
           q.idx = max(0, q.items.count - 1)
           dis()
         }
         .buttonStyle(.bordered)
-      }
-      .padding(16)
-      .navigationTitle("Paper")
-      .navigationBarTitleDisplayMode(.inline)
-      .toolbar {
-        ToolbarItem(placement: .topBarTrailing) {
-          Button("Done") { dis() }
-        }
+        .accessibilityIdentifier("document-detail-play-now")
       }
     }
   }
 
-  private func sub() -> String {
+  private var unableToLoadView: some View {
+    VStack(spacing: 12) {
+      Text("Unable to load document")
+        .font(.headline)
+      Text("Metadata and sections could not be loaded.")
+        .font(.subheadline)
+        .foregroundStyle(.secondary)
+        .multilineTextAlignment(.center)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel("Unable to load document. Metadata and sections could not be loaded.")
+    .accessibilityIdentifier("document-detail-unable-to-load")
+  }
+
+  private func metadataSubtitle(_ meta: Meta) -> String {
     var out: [String] = []
-    if rec.auths.count > 0 && rec.auths.count <= 2 { out.append(rec.auths.joined(separator: ", ")) }
-    if let d = rec.date { out.append(d) }
+    if !meta.auths.isEmpty {
+      if meta.auths.count <= 3 {
+        out.append(meta.auths.joined(separator: ", "))
+      } else {
+        out.append("\(meta.auths[0]) et al.")
+      }
+    }
+    if let d = meta.date { out.append(d) }
+    if out.isEmpty { return "No metadata available" }
     return out.joined(separator: " • ")
   }
 }

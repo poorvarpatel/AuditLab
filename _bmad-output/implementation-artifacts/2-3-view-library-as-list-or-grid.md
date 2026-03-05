@@ -1,6 +1,6 @@
 # Story 2.3: View Library as List or Grid
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -23,15 +23,15 @@ So that I can find and open documents.
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1: Library list/grid with document metadata** (AC: #1)
-  - [ ] Ensure Library tab shows documents from LibStore (or persistence) in a list and/or grid layout.
-  - [ ] Display at least title (or equivalent metadata) per document; use existing Document/PaperRec or Core Data model attributes.
-  - [ ] Use native SwiftUI (List, LazyVGrid, or equivalent) and follow Apple HIG for list/grid patterns.
-- [ ] **Task 2: Empty state** (AC: #2)
-  - [ ] When library has no documents, show explicit empty state: short message and optional "Add PDF" (or equivalent) action per NFR-U1.
-  - [ ] Reuse or align with Architecture/UX: intentional design with semantic background + text (and optional system symbol); no blank screen.
-- [ ] **Task 3: Verification** (AC: #1, #2)
-  - [ ] Manual: With documents in library, open Library tab → list/grid with titles; with empty library → empty state. Confirm native components and HIG.
+- [x] **Task 1: Library list/grid with document metadata** (AC: #1)
+  - [x] Ensure Library tab shows documents from LibStore (or persistence) in a list and/or grid layout.
+  - [x] Display at least title (or equivalent metadata) per document; use existing Document/PaperRec or Core Data model attributes.
+  - [x] Use native SwiftUI (List, LazyVGrid, or equivalent) and follow Apple HIG for list/grid patterns.
+- [x] **Task 2: Empty state** (AC: #2)
+  - [x] When library has no documents, show explicit empty state: short message and optional "Add PDF" (or equivalent) action per NFR-U1.
+  - [x] Reuse or align with Architecture/UX: intentional design with semantic background + text (and optional system symbol); no blank screen.
+- [x] **Task 3: Verification** (AC: #1, #2)
+  - [x] Manual: With documents in library, open Library tab → list/grid with titles; with empty library → empty state. Confirm native components and HIG.
 
 ## Dev Notes
 
@@ -132,4 +132,17 @@ So that I can find and open documents.
 
 ### Completion Notes List
 
+- Story 2.3 implementation: LibraryView shows documents in LazyVGrid with LibraryCardView (title + metadata); empty state with semantic background and Add PDF button. Integration and UI tests added for AC1/AC2.
+- Code review (2026-03-05): Fixes applied — (1) SF Symbol "plus.doc" → "doc.badge.plus" (valid system symbol). (2) File List and tasks updated. (3) RootView change documented as UI test support (-TEST_SEED_LIBRARY). (4) Integration test header comment updated.
+
 ### File List
+
+- AuditLab/LibraryView.swift (modified — list/grid, empty state, accessibility identifiers)
+- AuditLab/LibraryCardView.swift (modified — card layout, title/metadata, actions)
+- AuditLab/RootView.swift (modified — -TEST_SEED_LIBRARY for Story 2.3 UI test seeding)
+- AuditLabTests/LibraryViewStory23IntegrationTests.swift (created — AC1/AC2 integration tests)
+- AuditLabUITests/LibraryViewStory23AcceptanceTests.swift (created — AC1/AC2 UI acceptance tests)
+
+### Change Log
+
+- Code review fixes applied (2026-03-05): SF Symbol corrected; File List and tasks completed; RootView documented for test support; integration test comment updated. Status set to done.

@@ -30,8 +30,7 @@ struct QueueView: View {
               QueueItemRow(
                 item: item,
                 isCurrent: index == q.idx,
-                onTap: { },
-                onDelete: { q.rm(item) }
+                onTap: { }
               )
             }
             .onDelete { indexSet in
@@ -140,7 +139,6 @@ struct QueueItemRow: View {
   let item: QItem
   let isCurrent: Bool
   let onTap: () -> Void
-  let onDelete: () -> Void
   
   @EnvironmentObject var lib: LibStore
   @EnvironmentObject var folds: FoldStore
@@ -297,14 +295,26 @@ struct QueueItemRow: View {
       
       // Paper info
       VStack(alignment: .leading, spacing: 4) {
-        Text(paper?.title ?? item.paperId)
-          .font(.system(size: 16, weight: isCurrent ? .semibold : .regular))
-          .lineLimit(2)
-        
-        if let p = paper, !p.auths.isEmpty {
-          Text(p.auths.joined(separator: ", "))
-            .font(.system(size: 14))
+        if let p = paper {
+          Text(p.title)
+            .font(.system(size: 16, weight: isCurrent ? .semibold : .regular))
+            .lineLimit(2)
+          
+          if !p.auths.isEmpty {
+            Text(p.auths.joined(separator: ", "))
+              .font(.system(size: 14))
+              .foregroundStyle(.secondary)
+              .lineLimit(1)
+          }
+        } else {
+          Text("Document not available")
+            .font(.system(size: 16, weight: isCurrent ? .semibold : .regular))
             .foregroundStyle(.secondary)
+            .lineLimit(2)
+          
+          Text("The document is no longer in your library")
+            .font(.system(size: 14))
+            .foregroundStyle(.tertiary)
             .lineLimit(1)
         }
       }

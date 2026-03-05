@@ -19,10 +19,14 @@ final class LibStore: ObservableObject {
   @Published var recs: [PaperRec] = []
   @Published var isAddingDocument = false
   @Published var addError: String?
+  @Published var deleteError: String?
+  /// When non-nil, the pack for this document id is being loaded from disk (for detail view loading state).
+  @Published var loadingPackId: String? = nil
 
   private let repository: DocumentRepositoryProtocol
   private var packs: [String: ReadPack] = [:]
   private var contextObserver: AnyCancellable?
+  private var loadingTasks: [String: Task<Void, Never>] = [:]
 
   nonisolated deinit {}
 
@@ -42,10 +46,21 @@ final class LibStore: ObservableObject {
 
   // MARK: - Reactive reload
 
+  /// Reloads library from viewContext. Synchronous; no initial "library loading" spinner needed (NFR-U2).
   func reloadFromContext() {
     do {
       let documents = try repository.fetchDocuments()
-      recs = documents.map { documentToPaperRec($0) }
+      let newRecs = documents.map { documentToPaperRec($0) }
+      
+      // Clean up pack cache for deleted documents (after successful Core Data save)
+      let newIds = Set(newRecs.map(\.id))
+      let oldIds = Set(recs.map(\.id))
+      let deletedIds = oldIds.subtracting(newIds)
+      for deletedId in deletedIds {
+        packs.removeValue(forKey: deletedId)
+      }
+      
+      recs = newRecs
     } catch {
       recs = []
       #if DEBUG
@@ -97,11 +112,17 @@ final class LibStore: ObservableObject {
   }
 
   func delete(_ r: PaperRec) {
+    deleteError = nil
     do {
       let documents = try repository.fetchDocuments()
-      guard let doc = documents.first(where: { $0.identity?.uuidString == r.id }) else { return }
+      guard let doc = documents.first(where: { $0.identity?.uuidString == r.id }) else { 
+        deleteError = "Document not found."
+        return 
+      }
       try repository.deleteDocument(doc)
+      // Pack cleanup happens in context observer after successful Core Data save
     } catch {
+      deleteError = "Couldn't delete the document. Please try again."
       #if DEBUG
       print("[LibStore] delete failed: \(error)")
       #endif
@@ -112,6 +133,23 @@ final class LibStore: ObservableObject {
     if let idx = recs.firstIndex(where: { $0.id == id }) {
       recs[idx].isRead = true
     }
+  }
+
+  /// Clears all library documents. For UI tests only (call when launch argument -TEST_EMPTY_LIBRARY is set).
+  func clearAllDocumentsForTesting() {
+    #if DEBUG
+    do {
+      let documents = try repository.fetchDocuments()
+      for doc in documents {
+        try? repository.deleteDocument(doc)
+      }
+      reloadFromContext()
+    } catch {
+      #if DEBUG
+      print("[LibStore] clearAllDocumentsForTesting failed: \(error)")
+      #endif
+    }
+    #endif
   }
 
   // MARK: - Pack cache
@@ -128,6 +166,30 @@ final class LibStore: ObservableObject {
       return loaded
     }
     return nil
+  }
+
+  /// Ensures pack is loaded (from disk if needed). Call from detail view; use loadingPackId to show loading state.
+  func ensurePackLoaded(id: String) {
+    if packs[id] != nil { return }
+    
+    // Cancel any existing loading task for this ID
+    loadingTasks[id]?.cancel()
+    
+    loadingPackId = id
+    let task = Task.detached(priority: .userInitiated) { [weak self] in
+      let loaded = Self.loadPackFromDiskOffMain(id: id)
+      await MainActor.run {
+        guard let self else { return }
+        if let loaded {
+          self.packs[id] = loaded
+        }
+        if self.loadingPackId == id {
+          self.loadingPackId = nil
+        }
+        self.loadingTasks.removeValue(forKey: id)
+      }
+    }
+    loadingTasks[id] = task
   }
 
   func document(byId id: String) -> Document? {
@@ -202,6 +264,15 @@ final class LibStore: ObservableObject {
 
   private static func loadPackFromDisk(id: String) -> ReadPack? {
     let url = packsDirectory.appendingPathComponent("\(id).json")
+    guard let data = try? Data(contentsOf: url) else { return nil }
+    return try? JSONDecoder().decode(ReadPack.self, from: data)
+  }
+
+  /// Off-main read for ensurePackLoaded; does not touch MainActor state.
+  private nonisolated static func loadPackFromDiskOffMain(id: String) -> ReadPack? {
+    let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+    let dir = appSupport.appendingPathComponent("ReadPacks", isDirectory: true)
+    let url = dir.appendingPathComponent("\(id).json")
     guard let data = try? Data(contentsOf: url) else { return nil }
     return try? JSONDecoder().decode(ReadPack.self, from: data)
   }

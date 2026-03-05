@@ -118,14 +118,17 @@ final class QueueStore: ObservableObject {
   }
 
   func remove(atOffsets offsets: IndexSet) {
+    let ctx = repository.viewContext
     var toRemove: [QueueEntry] = []
     for i in offsets where i < entries.count {
       toRemove.append(entries[i])
     }
+    
     do {
       for entry in toRemove {
-        try repository.deleteQueueEntry(entry)
+        ctx.delete(entry)
       }
+      try ctx.save()
     } catch {
       #if DEBUG
       print("[QueueStore] remove(atOffsets:) failed: \(error)")

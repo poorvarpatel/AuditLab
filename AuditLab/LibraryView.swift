@@ -20,6 +20,7 @@ struct LibraryView: View {
   @State private var selectedFolderId: String? = nil
   @State private var showFolderDetail = false
   @State private var showFilePicker = false
+  @State private var selectedRec: PaperRec? = nil
 
   var body: some View {
     ZStack {
@@ -41,21 +42,29 @@ struct LibraryView: View {
             .padding(.horizontal, 18)
           }
 
-          // Papers section
-          LazyVGrid(columns: cols(), spacing: 18) {
-            ForEach(lib.recs) { r in
-              LibraryCardView(
-                rec: r,
-                status: .ready,
-                onPlay: { play(r) },
-                onAddToQueue: { addToQueue(r) },
-                onDelete: { delete(r) }
-              )
-              .frame(minHeight: 220)
+          // Papers section — list/grid with documents, or empty state (AC1, AC2)
+          if lib.recs.isEmpty {
+            libraryEmptyState
+          } else {
+            LazyVGrid(columns: cols(), spacing: 18) {
+              ForEach(lib.recs) { r in
+                LibraryCardView(
+                  rec: r,
+                  status: .ready,
+                  onPlay: { play(r) },
+                  onAddToQueue: { addToQueue(r) },
+                  onDelete: { delete(r) }
+                )
+                .frame(minHeight: 220)
+                .contentShape(Rectangle())
+                .onTapGesture { selectedRec = r }
+              }
             }
+            .padding(.horizontal, 18)
+            .padding(.bottom, 24)
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("library-document-list")
           }
-          .padding(.horizontal, 18)
-          .padding(.bottom, 24)
         }
       }
       .onDrop(of: [.pdf], isTargeted: nil) { providers in
@@ -91,6 +100,11 @@ struct LibraryView: View {
         lib.addDocument(from: url)
       }
     }
+    .sheet(item: $selectedRec) { rec in
+      PaperDetailView(rec: rec)
+        .environmentObject(lib)
+        .environmentObject(q)
+    }
     .overlay {
       if lib.isAddingDocument {
         ZStack {
@@ -108,6 +122,7 @@ struct LibraryView: View {
           .cornerRadius(16)
           .accessibilityElement(children: .combine)
           .accessibilityLabel("Parsing PDF")
+          .accessibilityIdentifier("library-add-pdf-loading")
         }
       }
     }
@@ -123,6 +138,37 @@ struct LibraryView: View {
 
   private func cols() -> [GridItem] {
     [GridItem(.adaptive(minimum: 320), spacing: 18)]
+  }
+
+  /// Empty state when library has no documents (NFR-U1): semantic background + message + Add PDF action.
+  private var libraryEmptyState: some View {
+    VStack(spacing: 20) {
+      Image(systemName: "doc.text.magnifyingglass")
+        .font(.system(size: 48))
+        .foregroundStyle(.secondary)
+      Text("No documents yet")
+        .font(.title2)
+        .fontWeight(.semibold)
+      Text("Add a PDF to get started.")
+        .font(.body)
+        .foregroundStyle(.secondary)
+        .multilineTextAlignment(.center)
+      Button {
+        showFilePicker = true
+      } label: {
+        Label("Add PDF", systemImage: "doc.badge.plus")
+      }
+      .buttonStyle(.borderedProminent)
+      .accessibilityIdentifier("library-empty-state-add-pdf")
+    }
+    .frame(maxWidth: .infinity)
+    .padding(32)
+    .background(Color(.secondarySystemGroupedBackground))
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel("No documents yet. Add a PDF to get started.")
+    .accessibilityIdentifier("library-empty-state")
+    .padding(.horizontal, 18)
+    .padding(.bottom, 24)
   }
 
   private func play(_ r: PaperRec) {
